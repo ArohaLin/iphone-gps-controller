@@ -1,3 +1,5 @@
+[English](README.md) | [繁體中文](README.zh-TW.md)
+
 # 📍 iPhone GPS Controller
 
 透過 Mac（USB 連線）即時模擬 / 修改 iPhone GPS 位置的工具。  
