@@ -1,3 +1,5 @@
+[English](README.md) | [繁體中文](README.zh-TW.md)
+
 # 📍 iPhone GPS Controller
 
 A tool for real-time iPhone GPS location simulation via USB from a Mac.  
