@@ -1,5 +1,3 @@
-[English](README.md) | [繁體中文](README.zh-TW.md)
-
 # 📍 iPhone GPS Controller
 
 A tool for real-time iPhone GPS location simulation via USB from a Mac.  
@@ -8,6 +6,20 @@ A tool for real-time iPhone GPS location simulation via USB from a Mac.
 
 > **Author:** Aroha Lin · **License:** MIT · **Copyright (c) 2026 Aroha Lin**  
 > **Repo:** https://github.com/ArohaLin/iphone-gps-controller
+
+🌏 **繁體中文版說明：[README.zh-TW.md](README.zh-TW.md)**
+
+---
+
+## What's New
+
+This release is a major upgrade over the first version:
+
+- **Multi-device sync** — drive several iPhones at once. A 🔗 *Sync All Devices* card broadcasts every set / clear / cruise step to all connected phones simultaneously.
+- **Step counter (HealthKit)** — add simulated steps and a walk-simulation mode; steps are written to the iPhone **Health** app via an iOS Shortcut (see [Step Counter](#-step-counter)).
+- **Cruise upgrades** — pause / resume (keeps progress even if you move elsewhere meanwhile), save / load named routes, and batch-paste many coordinates at once.
+- **Favorites overhaul** — manual add, automatic country name (Traditional Chinese), live local time, drag-free reordering with a pinned toolbar, and edit name + coordinates.
+- **Much more robust backend** — unplug / re-plug now reconnects automatically (no launcher restart needed), USB-only device filtering, full process-group tunnel cleanup, self-healing reconnect, and file logging.
 
 ---
 
@@ -19,10 +31,11 @@ A tool for real-time iPhone GPS location simulation via USB from a Mac.
 4. [Quick Start](#quick-start)
 5. [Backend — gps_launcher.py](#backend--gps_launcherpy)
 6. [Frontend — gps_map.html Usage](#frontend--gps_maphtml-usage)
-7. [HTTP API Reference](#http-api-reference)
-8. [Keyboard Shortcuts](#keyboard-shortcuts)
-9. [Troubleshooting](#troubleshooting)
-10. [Third-Party Licenses](#third-party-licenses)
+7. [Step Counter](#-step-counter)
+8. [HTTP API Reference](#http-api-reference)
+9. [Keyboard Shortcuts](#keyboard-shortcuts)
+10. [Troubleshooting](#troubleshooting)
+11. [Third-Party Licenses](#third-party-licenses)
 
 ---
 
@@ -32,13 +45,16 @@ A tool for real-time iPhone GPS location simulation via USB from a Mac.
 |---------|-------------|
 | 📍 Click-to-set GPS | Click the map or enter coordinates to instantly push to iPhone |
 | 🧭 Directional Move | 8-direction pad with configurable step distance (meters) |
-| 🗺 Cruise Mode | Multi-waypoint route planning with auto per-second advancement and loop support |
+| 🗺 Cruise Mode | Multi-waypoint route planning with per-second advancement, loop, **pause/resume**, **save/load**, and **batch paste** |
 | 📤 GPX Export | Export waypoint routes as standard `.gpx` files |
 | 🔍 Place Search | Search global locations via Nominatim (OpenStreetMap) |
-| ⭐ Favorites | Save frequently-used locations in browser localStorage |
-| 🕐 Local Time | Display local time at target coordinates (Open-Meteo API) |
+| ⭐ Favorites | Save locations with country name + live local time, reorder, and edit |
+| 🕐 Local Time | Display local time + cross-day indicator at target coordinates (Open-Meteo API) |
+| 👟 Step Counter | Add steps / simulate walking, written to iPhone Health via an iOS Shortcut |
+| 🔗 Multi-Device Sync | Broadcast one action to all connected iPhones at once |
 | 📱 Multi-Device | Manage multiple iPhones simultaneously with seamless switching |
-| 🔄 Auto-Reconnect | Automatically retries on tunnel or GPS disconnect |
+| 🔄 Auto-Reconnect | Self-healing tunnel/GPS reconnect; clean unplug → re-plug handling |
+| 📝 File Logging | Every run is logged to `gps_launcher.log` next to the script |
 
 ---
 
@@ -46,13 +62,12 @@ A tool for real-time iPhone GPS location simulation via USB from a Mac.
 
 | Item | Requirement |
 |------|-------------|
-| **OS** | macOS (requires `sudo` to create USB tunnel) |
+| **OS** | macOS (tunnel creation requires `sudo`) |
 | **Python** | 3.8 or higher |
-| **iPhone iOS** | iOS 16 or higher |
-| **Developer Mode** | **Must be enabled** on iPhone (Settings → Privacy & Security → Developer Mode) |
+| **iPhone iOS** | iOS 16 or higher (iOS 17+ requires RSD tunnel + Developer Mode) |
 | **Connection** | USB (Lightning or USB-C) |
 | **Browser** | Chrome / Firefox / Safari (Clipboard API support required) |
-| **Network** | Backend is local-only; Search / Timezone features require internet |
+| **Network** | Backend is local-only by default; Search / Timezone require internet. Step writing needs an extra tool — see [Step Counter](#-step-counter) |
 
 ---
 
@@ -77,27 +92,7 @@ pip install aiohttp pymobiledevice3
 2. Tap **Trust** when iPhone prompts "Trust This Computer?"
 3. Ensure `usbmuxd` is running on Mac (usually starts automatically)
 
-### 3. Enable Developer Mode on iPhone (Required)
-
-This tool uses the DVT (DeveloperTools) service to simulate GPS.  
-**Developer Mode is mandatory** — without it, the USB tunnel cannot be established and all devices will remain in red (failed) status.
-
-**Method A — Command line (iPhone must be unlocked and trusted):**
-
-```bash
-python3 -m pymobiledevice3 amfi enable-developer-mode
-```
-
-**Method B — Manual:**
-
-1. On iPhone: **Settings → Privacy & Security → Developer Mode**
-2. Toggle on → tap **Restart** to confirm
-3. After reboot, confirm **Turn On Developer Mode** when prompted
-
-> ⚠️ Developer Mode takes effect only after the iPhone restarts.  
-> ⚠️ Avoid enabling Developer Mode on untrusted networks.
-
-### 4. Download Files
+### 3. File Structure
 
 ```
 iphone-gps-controller/
@@ -112,24 +107,24 @@ iphone-gps-controller/
 ### Step 1: Start the Backend
 
 ```bash
-python3 gps_launcher.py
+sudo python3 gps_launcher.py
 ```
+
+> ⚠️ **Tunnel creation requires `sudo`** — macOS will prompt for your password.
 
 On successful startup, the terminal will show:
 
 ```
-09:00:00 INFO    🚀 GPS Launcher port=8090
-09:00:00 INFO     GET  http://localhost:8090/devices
-09:00:00 INFO     POST http://localhost:8090/device/{idx}/set
-09:00:00 INFO     POST http://localhost:8090/device/{idx}/clear
-09:00:00 INFO    Scanning USB devices...
-09:00:06 INFO    Device found: Aroha's iPhone (A1B2)
-09:00:14 INFO    [Aroha's iPhone] Starting tunnel...
-09:00:18 INFO    [Aroha's iPhone] ✅ Tunnel OK fd12::1:8a:0:0%utun3:61234
-09:00:18 INFO    [Aroha's iPhone] ✅ GPS connected
+20:00:00 INFO    🚀 GPS Launcher  127.0.0.1:8090  log=/path/to/gps_launcher.log
+20:00:00 INFO       GET  http://localhost:8090/devices
+20:00:00 INFO       POST http://localhost:8090/device/{idx}/set
+20:00:00 INFO       POST http://localhost:8090/devices/set    (broadcast)
+20:00:00 INFO    Scanning USB devices...
+20:00:06 INFO    Device found: Aroha's iPhone (A1B2)
+20:00:14 INFO    [Aroha's iPhone] Starting tunnel...
+20:00:18 INFO    [Aroha's iPhone] ✅ Tunnel OK  fd12::1:8a:0:0%utun3:61234
+20:00:18 INFO    [Aroha's iPhone] ✅ GPS connected
 ```
-
-> ⚠️ **Tunnel creation requires `sudo`** — macOS will prompt for your password the first time.
 
 ### Step 2: Open the Frontend Map
 
@@ -144,7 +139,7 @@ open gps_map.html
 
 1. Confirm the iPhone shows a **green dot (Connected)** in the device list
 2. Click anywhere on the map → iPhone GPS updates instantly
-3. A toast notification in the top-right corner confirms success
+3. A toast notification confirms success
 
 ---
 
@@ -153,17 +148,19 @@ open gps_map.html
 ### Command-Line Arguments
 
 ```bash
-python3 gps_launcher.py [PORT]
+sudo python3 gps_launcher.py [PORT] [HOST]
 ```
 
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `PORT` | HTTP API listening port | `8090` |
+| `HOST` | Bind address. Use `0.0.0.0` to allow the iPhone to reach the API over Wi-Fi (needed for the step-counter polling fallback) | `127.0.0.1` |
 
-Example — use a custom port:
+Examples:
 
 ```bash
-python3 gps_launcher.py 9000
+sudo python3 gps_launcher.py 9000              # custom port
+sudo python3 gps_launcher.py 8090 0.0.0.0      # expose to LAN (Wi-Fi step polling)
 ```
 
 ### Internal Constants (editable in source)
@@ -175,19 +172,29 @@ python3 gps_launcher.py 9000
 | `TUNNEL_RETRIES` | Number of tunnel retry attempts on failure | `3` |
 | `TUNNEL_RETRY_SEC` | Wait between retry attempts (seconds) | `5` |
 | `DEVICE_BOOT_WAIT` | Seconds to wait after device detection before tunneling | `8` |
+| `MISS_THRESHOLD` | Consecutive missed scans before a device is treated as removed (debounces transient scan failures) | `2` |
+| `SHORTCUT_NAME` | Name of the iOS Shortcut used to write steps to Health | `GPS步數增加` |
+
+### Logging
+
+Every run writes to `gps_launcher.log` (same name as the script, `.log` extension), alongside live console output. The log file is **not** meant to be committed — it can contain device names, UDIDs, and the session token.
 
 ### Internal Architecture
 
 ```
 Startup
- └─ device_scanner  (every 6 seconds)
-      ├─ New device detected → setup_device (wait 8s → start tunnel → gps_worker)
-      └─ Device removed      → terminate tunnel
+ └─ device_scanner  (every 6 seconds, USB-only)
+      ├─ New device   → setup_device (wait 8s → start tunnel → gps_worker)
+      └─ Device gone  → teardown_device (cancel tasks → kill tunnel group → clear state)
+                        (only after MISS_THRESHOLD consecutive misses)
 
 gps_worker  (one persistent coroutine per device)
  └─ Connect RSD → DvtProvider → LocationSimulation
-      ├─ Receives SetCmd(lat, lon) → loc.set(lat, lon)
-      └─ Receives ClearCmd        → loc.clear()
+      ├─ SetCmd(lat, lon) → loc.set(lat, lon)
+      ├─ ClearCmd         → loc.clear()
+      └─ Tunnel died?     → rebuild it automatically (self-healing)
+
+Shutdown (Ctrl-C) → _cleanup_all → tear down every device tunnel
 ```
 
 The launcher uses **three fallback methods** for USB device scanning:
@@ -195,9 +202,20 @@ The launcher uses **three fallback methods** for USB device scanning:
 2. CLI subprocess (`python -m pymobiledevice3 usbmux list`)
 3. Regex UDID extraction from CLI output (last resort)
 
+Only **USB-connected** devices are used; Wi-Fi-paired devices are ignored so the launcher never tries to tunnel a phone that isn't physically plugged in.
+
+### Reliability (unplug / re-plug)
+
+Earlier versions could get stuck after unplugging and re-plugging a phone, requiring a launcher restart. This is fixed:
+
+- The per-device `gps_worker` and `setup_device` tasks are tracked and **cancelled** on removal.
+- The tunnel subprocess is spawned in its own process group and torn down with `killpg`, so no orphan tunnel processes linger.
+- The cached RSD endpoint is cleared on teardown, and a worker that detects a dead tunnel **rebuilds it** automatically.
+- On shutdown, all tunnels are cleaned up so the next run starts clean.
+
 ### Stopping the Service
 
-Press `Ctrl + C` for a graceful shutdown.
+Press `Ctrl + C` for a graceful shutdown (all tunnels are released).
 
 ---
 
@@ -209,129 +227,155 @@ The frontend polls the backend API (default `http://localhost:8090`) every **1.5
 
 ### 📍 Normal Mode
 
-**Click to Set Position**
-- Click anywhere on the map → GPS coordinates are instantly pushed to iPhone
-- The HUD in the bottom-right corner shows live cursor coordinates
+**Click to Set Position** — click the map → coordinates are pushed to iPhone instantly; the HUD shows live cursor coordinates.
 
-**Manual Coordinate Input**
-1. Enter values in the **Latitude** and **Longitude** fields in the sidebar
-2. Click the **Go** button to confirm
+**Manual Coordinate Input** — enter `Lat, Lon` in a single field (spaces are ignored) and click **Set**.
 
-**Direction Pad**
-- 8-direction buttons: N / NE / E / SE / S / SW / W / NW
-- Set **step distance** in the input field (meters, default 10 m)
-- Keyboard control also available (see [Keyboard Shortcuts](#keyboard-shortcuts))
+**Direction Pad** — 8-direction buttons with a configurable step distance (meters); keyboard control also available (see [Keyboard Shortcuts](#keyboard-shortcuts)).
 
-**Copy Coordinates**
-- Click the 📋 icon → copies `lat,lon` to clipboard (6 decimal places)
+**Copy Coordinates** — copies `lat, lon` to the clipboard (comma + space, 6 decimals).
 
-**Clear GPS Simulation**
-- Click **Clear GPS** → removes simulated location; iPhone reverts to real GPS
+**Clear GPS Simulation** — removes the simulated location; iPhone reverts to real GPS.
 
-**Device Status Card**
+**Device Status Card** — Connected / Simulating / Set Count / Uptime.
 
-| Field | Description |
-|-------|-------------|
-| Connected | Whether the GPS service is successfully linked |
-| Simulating | Whether fake coordinates are currently being sent |
-| Set Count | Total GPS pushes since the launcher started |
-| Uptime | Elapsed time since device was detected |
+**Timezone Info** — local time (Open-Meteo) and a cross-day ⚠ indicator.
 
-**Timezone Info**
-- **Local Time**: timezone queried via Open-Meteo API, then converted
-- **Cross-Day**: whether the target location is on a different date than Taiwan (⚠ yellow warning)
+---
+
+### 🔗 Sync All Devices
+
+When two or more iPhones are connected, a **🔗 Sync All Devices** card appears at the top of the device list. Select it to broadcast every action — set position, clear, cruise steps, and step counter — to **all connected devices at once**. The card shows how many devices are connected (e.g. `2 / 2`).
+
+Select an individual device card instead to control just that one.
 
 ---
 
 ### 🗺 Cruise Mode
 
-**Adding Waypoints**
-1. Switch to the **Cruise** tab
-2. Click the map to add waypoints in sequence (yellow numbered circle markers)
-3. **Drag** markers to adjust positions
-4. **Double-click** a marker to delete it
-5. **⎌ Undo** removes the last waypoint; **Clear All** resets the route
+**Adding Waypoints** — click the map to add numbered waypoints; drag to move, double-click to delete. **⎌ Undo** removes the last, **Clear All** resets.
 
-**Speed & Loop Settings**
-- Speed: enter in km/h
-- Loop: when enabled, automatically restarts from the first waypoint after reaching the end
+**Batch Paste Coordinates** — paste many coordinates at once (one per line, or many comma-pairs separated by spaces). Supported formats: `25.0330, 121.5654`, `25.0330 121.5654`, `25.0330,121.5654`, negative values, and lines with leading labels. Spaces are normalized automatically. Click **Apply** to replace the current route (you'll be asked to confirm if waypoints already exist).
 
-**Route Info Panel**
+**Speed & Loop** — speed in km/h; loop restarts from the first waypoint after the end.
 
-| Field | Description |
-|-------|-------------|
-| Waypoints | Total number of added waypoints |
-| Distance | Total route distance (auto-unit: m or km) |
-| ETA | Estimated time to complete the full route |
+**Route Info** — waypoints, distance (auto m/km), and ETA.
 
 **Playing a Cruise**
-1. At least 2 waypoints are required
-2. Click ▶ **Play** → one GPS step is pushed per second (speed-interpolated)
-3. The progress bar shows current step / total steps in real time
-4. Click ■ **Stop** → stays at the last position (GPS is NOT cleared)
+1. At least 2 waypoints are required.
+2. Click ▶ **Play** → one interpolated GPS step is pushed per second.
+3. Click ⏸ **Pause** → progress and position are **remembered**. You can move the GPS elsewhere meanwhile; pressing ▶ **Resume** continues from exactly where you paused.
+4. Click ■ **Stop** → ends the run (the last position stays; GPS is not cleared).
 
-**Export GPX**
-- Click **Export GPX** → downloads `cruise_route.gpx`
-- Standard GPX 1.1 format, compatible with Google Maps, Garmin, etc.
+> Moving the GPS manually (map click, input, D-pad, favorite) **while a cruise is playing** auto-pauses the cruise so your manual position isn't overwritten.
+
+**Save / Load Routes** — **💾 Save Route** stores the current waypoints + speed + loop under a name (in `localStorage`); **📂 Load Route** lists saved routes to load or delete.
+
+**Export GPX** — downloads `cruise_route.gpx` (standard GPX 1.1).
 
 ---
 
 ### ⭐ Favorites
 
-- Location data is stored in the browser's `localStorage` (key: `gps_favorites_v1`)
-- **Persistent** — survives page refreshes and browser restarts
+Stored in the browser's `localStorage` (key: `gps_favorites_v1`); persists across refreshes and restarts.
 
 **How to Add**
-1. In Normal mode, click **⭐ Add to Favorites** → enter a label
-2. From a search result Popup, click **⭐ Add to Favorites**
+- **⭐ Add Current Position** — saves the current coordinates (you enter a name).
+- **✚ Add Manually** — type a name + coordinates in a dialog.
+- From a search-result Popup, **⭐ Add to Favorites**.
 
-**Favorite Item Buttons**
+The country name (in Traditional Chinese) is filled in automatically via reverse geocoding.
 
-| Button | Action |
-|--------|--------|
-| 🗺 | Pan map to this location |
-| 📍 | Set as iPhone GPS position |
-| ✏ | Rename |
-| 🗑 | Delete |
+**Each item shows** the name + country, plus a **live local time** and cross-day tag.
 
-- Each favorite displays its **local time** and **cross-day** indicator
-- Click the location name (not a button) → map pans to it
+**Item buttons:** 🗺 pan map · 📍 set as GPS · ✎ edit name & coordinates · 🗑 delete.
+
+**Reordering** — the ↑ / ↓ buttons sit in a **pinned toolbar** that stays visible while you scroll. Click an item to select it, then use ↑ / ↓ to move it; the selection stays put so you can move it repeatedly without re-clicking.
+
+**Map click in Favorites mode** — switches to Normal mode and sets that position.
 
 ---
 
 ### 🔍 Place Search
 
-1. Type a place name in the sidebar search box (Chinese or English)
-2. Press Enter or the search button → calls Nominatim API
-3. Up to 7 results are shown, each with country and local time
-4. Click any result → map jumps to it and a Popup appears with:
-   - **📍 Set as GPS position** — pushes immediately
-   - **✚ Add waypoint** (visible in Cruise mode only)
-   - **⭐ Add to Favorites**
+1. Type a place name (Chinese or English) and press Enter / the search button.
+2. Up to 7 results are shown, each with country and local time.
+3. Click a result → map jumps there and a Popup offers: **📍 Set as GPS**, **✚ Add waypoint** (Cruise mode only), and **⭐ Add to Favorites**.
 
 ---
 
 ### Device Management
 
-- The backend scans USB every 6 seconds; new devices **appear automatically**
-- Disconnected devices are removed; the frontend auto-switches to the next connected device
-- Multiple iPhones can be connected simultaneously; click a device card to select it
-- Device status indicator colors:
-  - 🟢 Green: GPS connected
-  - 🟡 Yellow: Tunnel OK, GPS connecting
-  - 🔴 Red: Tunnel establishing / failed
+- USB is scanned every 6 seconds; new devices appear automatically.
+- Disconnected devices are removed (after a short debounce); the frontend auto-switches to the next connected device.
+- Status dot colors: 🟢 GPS connected · 🟡 tunnel OK, GPS connecting · 🔴 tunnel establishing / failed.
+
+---
+
+## 👟 Step Counter
+
+The **Steps** tab can add simulated steps and run a walk-simulation (add N steps every few seconds for a total duration). Steps can also be broadcast to all devices in Sync mode.
+
+### How steps reach the iPhone Health app
+
+GPS simulation uses the developer (DVT) channel and needs no app on the phone. **HealthKit step data is different** — it must be written by an app/Shortcut with Health permission. This tool drives an **iOS Shortcut** that records steps into Health.
+
+**One-time setup on the iPhone:**
+1. Open the **Shortcuts** app → create a new shortcut.
+2. Name it exactly to match `SHORTCUT_NAME` (default `GPS步數增加`).
+3. Add action **Log Health Sample** → Type: **Steps** → Amount: **Shortcut Input**.
+4. In the shortcut settings, enable **Run without confirmation**.
+
+**How the launcher triggers it (auto-detected, in order):**
+
+| Method | iOS | Requirement |
+|--------|-----|-------------|
+| `xcrun devicectl` | iOS 17+ | Full **Xcode 15+** (not just Command Line Tools) |
+| `ideviceopenurl` | iOS 12–16 | `brew install libimobiledevice` |
+| Wi-Fi polling (fallback) | any | Start with `HOST=0.0.0.0`; an extra polling Shortcut reads pending steps from the launcher |
+
+The Steps tab includes a **🔗 iPhone Shortcut setup** panel that shows which method is active and the polling URL for the fallback.
+
+> If none of the above is available, steps are added to a pending queue but won't appear in Health until a trigger method is set up.
 
 ---
 
 ## HTTP API Reference
 
-The backend listens on `http://127.0.0.1:{PORT}` (default 8090) with CORS fully open.
+The backend listens on `http://{HOST}:{PORT}` (default `127.0.0.1:8090`) with CORS fully open.
 
-### GET `/devices`
+### Per-device
 
-Returns all detected devices.
+| Method & Path | Description |
+|---------------|-------------|
+| `GET /devices` | List all detected devices (array of status objects) |
+| `POST /device/{idx}/set` | Set coordinates — body `{ "lat": .., "lon": .. }` |
+| `POST /device/{idx}/clear` | Clear simulation, restore real GPS |
+| `GET /device/{idx}/status` | Detailed status of one device |
+| `GET /device/{idx}/steps` | Current step count |
+| `POST /device/{idx}/steps/add` | Add steps — body `{ "count": N }` |
+| `POST /device/{idx}/steps/remove` | Remove steps — body `{ "count": N }` |
+| `POST /device/{idx}/steps/reset` | Reset step count to 0 |
 
-**Response example:**
+### Broadcast (all connected devices)
+
+| Method & Path | Description |
+|---------------|-------------|
+| `POST /devices/set` | Set the same coordinates on every connected device |
+| `POST /devices/clear` | Clear simulation on every connected device |
+| `POST /devices/steps/add` | Add steps on every device |
+| `POST /devices/steps/remove` | Remove steps on every device |
+
+### Shortcut integration
+
+| Method & Path | Description |
+|---------------|-------------|
+| `GET /shortcut/info` | Integration status (active method, token, local IP, pending steps) |
+| `POST /shortcut/config` | Update the Shortcut name — body `{ "name": ".." }` |
+| `GET /shortcut/sync` | Polling endpoint for the iPhone Shortcut (token-authenticated) |
+| `POST /shortcut/ack` | Acknowledge a Health write (token-authenticated) |
+
+**Example — `GET /devices` response:**
 ```json
 [
   {
@@ -344,6 +388,7 @@ Returns all detected devices.
     "last_lat": 25.03300,
     "last_lon": 121.56540,
     "set_count": 42,
+    "steps": 1000,
     "uptime_sec": 180,
     "tunnel_ok": true,
     "error": null
@@ -351,43 +396,7 @@ Returns all detected devices.
 ]
 ```
 
----
-
-### POST `/device/{idx}/set`
-
-Sets the GPS simulation coordinates for a specific device.
-
-**Request Body (JSON):**
-```json
-{ "lat": 25.03300, "lon": 121.56540 }
-```
-
-**Success response:**
-```json
-{ "ok": true, "lat": 25.033, "lon": 121.5654 }
-```
-
-**Failure response:**
-```json
-{ "ok": false, "error": "GPS not connected" }
-```
-
----
-
-### POST `/device/{idx}/clear`
-
-Clears GPS simulation for a device, restoring real GPS.
-
-**Response:**
-```json
-{ "ok": true }
-```
-
----
-
-### GET `/device/{idx}/status`
-
-Returns the detailed status of a single device (same schema as one item in the `/devices` array).
+A broadcast response includes the affected device count, e.g. `{ "ok": true, "count": 2, "lat": .., "lon": .. }`.
 
 ---
 
@@ -419,23 +428,27 @@ Returns the detailed status of a single device (same schema as one item in the `
 - Run `python3 -m pymobiledevice3 usbmux list` to verify detection
 
 **Q2: Tunnel keeps failing (`❌ Tunnel failed after 3 attempts`)?**
-- Confirm Developer Mode is enabled on iPhone — this is a required prerequisite (Settings → Privacy & Security → Developer Mode)
+- iOS 17+ requires **Developer Mode**: Settings → Privacy & Security → Developer Mode → Enable
 - Ensure Xcode Command Line Tools are up to date: `xcode-select --install`
 - Try restarting the iPhone before reconnecting
 
 **Q3: GPS set but iPhone location doesn't change?**
-- Confirm the device card shows a **green dot (Connected)**
-- Confirm the status card shows **Simulating: Yes**
+- Confirm the device card shows a **green dot (Connected)** and **Simulating: Yes**
 - Some apps need to be relaunched to pick up the new location
 
 **Q4: Frontend shows "Launcher not running"?**
-- Confirm `gps_launcher.py` is running and shows `🚀 GPS Launcher port=8090`
-- Check that your browser isn't blocking `localhost:8090`
+- Confirm `gps_launcher.py` is running and shows `🚀 GPS Launcher`
 - If you changed the port, update `const META = 'http://localhost:PORT';` in `gps_map.html`
 
-**Q5: GPS disappears after stopping cruise?**
-- By design: stopping a cruise **keeps the last position** — GPS is not cleared automatically
-- To restore real GPS, click the **Clear GPS** button in Normal mode
+**Q5: GPS disappears after stopping a cruise?**
+- By design: stopping a cruise **keeps the last position**. Use **Clear GPS** in Normal mode to restore real GPS.
+
+**Q6: Steps added but nothing shows in the Health app?**
+- Steps require an iOS Shortcut trigger — see [Step Counter](#-step-counter)
+- Check the **🔗 iPhone Shortcut setup** panel in the Steps tab to see which method is active
+
+**Q7: Phone won't reconnect after unplug/re-plug (older behavior)?**
+- This is fixed in the current version — re-plugging reconnects automatically without restarting the launcher.
 
 ---
 

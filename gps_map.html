@@ -2,6 +2,8 @@
 <!--
   gps_map.html
   iPhone GPS Controller - Web Map Interface
+  Pick "🔗 同步全部裝置" at the top of the device list to broadcast
+  every set / clear / cruise step to all connected iPhones at once.
 
   Author  : Aroha Lin <https://github.com/ArohaLin>
   Repo    : https://github.com/ArohaLin/iphone-gps-controller
@@ -50,6 +52,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .device-card:hover{background:var(--surf2)}
 .device-card.selected{background:var(--primary-hi);border-left:3px solid var(--primary)}
 .device-card.selected .dc-name{color:var(--primary)}
+.device-card.sync-card{background:rgba(232,175,52,.06)}
+.device-card.sync-card .dc-name{color:var(--warn);font-weight:600}
+.device-card.sync-card.selected{background:rgba(232,175,52,.18);border-left:3px solid var(--warn)}
+.device-card.sync-card.selected .dc-name{color:var(--warn)}
+.device-card.sync-card .dc-badge{background:rgba(232,175,52,.22);color:var(--warn)}
 .dc-dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex-shrink:0;transition:background .3s}
 .dc-dot.ok{background:var(--success)}
 .dc-dot.err{background:var(--err)}
@@ -205,22 +212,82 @@ input:focus{border-color:var(--primary)}
 .sr-time{color:var(--primary);font-size:11px;margin-left:8px;font-family:'SF Mono',Menlo,monospace}
 .sr-cd{background:rgba(232,175,52,.2);color:var(--warn);font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;font-weight:700}
 
-/* 我的最愛 */
+/* 我的最愛 — 扁平版 */
+/* 置頂工具列：捲動清單時 ↑↓ 按鈕固定在頂端，免去來回滑動 */
+.fav-toolbar{position:sticky;top:0;z-index:6;background:var(--surf);display:flex;align-items:center;gap:5px;padding:10px 0 8px;margin-bottom:4px;border-bottom:1px solid var(--border);box-shadow:0 4px 8px -4px rgba(0,0,0,.35)}
 .fav-empty{padding:24px 16px;text-align:center;color:var(--faint);font-size:12px;line-height:1.8}
-.fav-item{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);transition:background .15s}
+.fav-item{display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-bottom:1px solid var(--border);transition:background .15s}
 .fav-item:last-child{border-bottom:none}
 .fav-item:hover{background:var(--surf2)}
-.fav-star{font-size:16px;flex-shrink:0;margin-top:1px}
-.fav-body{flex:1;min-width:0;cursor:pointer}
-.fav-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fav-coords{font-family:'SF Mono',Menlo,monospace;font-size:10.5px;color:var(--muted);margin-top:1px}
-.fav-meta{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap}
-.fav-country{font-size:11px;color:var(--text);font-weight:500}
-.fav-time{font-size:11px;color:var(--primary);font-family:'SF Mono',Menlo,monospace}
-.fav-btns{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
-.fav-btn{width:24px;height:24px;border:1px solid var(--border);background:var(--surf2);border-radius:5px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.fav-row1{display:flex;align-items:center;gap:4px;min-width:0}
+.fav-row2{display:flex;align-items:center;gap:4px;padding-left:17px;min-width:0}
+.fav-star{font-size:12px;flex-shrink:0;line-height:1}
+.fav-name{flex:1;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-width:0}
+.fav-time{flex:1;font-size:10px;color:var(--primary);font-family:'SF Mono',Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fav-btns{display:flex;gap:2px;flex-shrink:0}
+.fav-btn{width:19px;height:19px;border:1px solid var(--border);background:transparent;border-radius:4px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0;line-height:1}
 .fav-btn:hover{background:var(--surf3);border-color:var(--primary)}
+.fav-btn:disabled{opacity:.25;cursor:default}
+.fav-btn:disabled:hover{background:transparent;border-color:var(--border)}
 .fav-del:hover{background:rgba(209,99,116,.15);border-color:var(--err)}
+.fav-btn-order{background:rgba(79,152,163,.18);color:var(--primary);border-color:rgba(79,152,163,.45)}
+.fav-btn-order:hover{background:var(--primary);color:white;border-color:var(--primary)}
+.fav-btn-order:disabled{background:transparent;color:var(--faint);border-color:var(--border)}
+.fav-btn-edit{background:rgba(232,175,52,.18);color:var(--warn);border-color:rgba(232,175,52,.45)}
+.fav-btn-edit:hover{background:var(--warn);color:#1a1a1a;border-color:var(--warn)}
+.fav-item.fav-selected{background:var(--primary-hi)!important;border-left:2px solid var(--primary);padding-left:8px}
+.fav-item.fav-selected .fav-row2{padding-left:15px}
+
+/* 修改地點 Modal */
+.fav-modal{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center}
+.fav-modal.hidden{display:none!important}
+.fav-modal-box{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:18px 20px;width:270px;display:flex;flex-direction:column;gap:7px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.fav-modal-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.fav-modal-label{font-size:10.5px;color:var(--muted);margin-bottom:-3px}
+.fav-modal-btns{display:flex;gap:8px;margin-top:5px}
+.fav-modal-btns button{flex:1;padding:7px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
+.fav-modal-btns .btn-confirm{background:var(--primary);border-color:var(--primary);color:white}
+.fav-modal-btns .btn-confirm:hover{background:var(--primary-dk)}
+.fav-modal-btns .btn-cancel{background:var(--surf2);color:var(--text)}
+.fav-modal-btns .btn-cancel:hover{background:var(--surf3)}
+
+/* 步數面板 */
+.steps-display-card{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.steps-num{font-size:38px;font-weight:700;color:var(--primary);font-family:'SF Mono',Menlo,monospace;line-height:1;letter-spacing:-1px}
+.steps-unit{font-size:11px;color:var(--muted)}
+.step-quick-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.btn-step{padding:8px 4px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(109,170,69,.4);background:rgba(109,170,69,.09);color:var(--success);transition:all .15s;text-align:center;line-height:1.2}
+.btn-step:hover{background:rgba(109,170,69,.2);border-color:var(--success)}
+.btn-step:active{transform:scale(.95)}
+.walk-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.walk-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.walk-field{display:flex;flex-direction:column;gap:5px}
+.walk-field .field-label{margin-bottom:0}
+
+/* 批次貼上座標 */
+.paste-area{width:100%;min-height:88px;max-height:180px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'SF Mono',Menlo,monospace;font-size:11px;padding:8px 10px;resize:vertical;outline:none;line-height:1.6;transition:border-color .2s}
+.paste-area:focus{border-color:var(--primary)}
+.paste-area::placeholder{color:var(--faint);font-size:10.5px;font-family:inherit}
+.paste-preview{font-size:10.5px;color:var(--muted);margin-top:4px;min-height:15px}
+.paste-preview.ok{color:var(--success)}
+.paste-preview.err{color:var(--err)}
+
+/* 巡航路線 儲存/讀取 Modal */
+.cruise-modal{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center}
+.cruise-modal.hidden{display:none!important}
+.cruise-modal-box{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:18px 20px;width:300px;display:flex;flex-direction:column;gap:9px;box-shadow:0 8px 32px rgba(0,0,0,.5);max-height:80vh}
+.cruise-modal-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.cruise-route-list{display:flex;flex-direction:column;gap:0;overflow-y:auto;max-height:340px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)}
+.cruise-route-list::-webkit-scrollbar{width:4px}
+.cruise-route-list::-webkit-scrollbar-thumb{background:var(--border)}
+.cr-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid var(--border);transition:background .15s}
+.cr-item:last-child{border-bottom:none}
+.cr-item:hover{background:var(--surf2)}
+.cr-info{flex:1;min-width:0}
+.cr-name{font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-meta{font-size:10.5px;color:var(--muted);margin-top:2px}
+.cr-btns{display:flex;gap:4px;flex-shrink:0}
+.cr-empty{padding:22px;text-align:center;color:var(--faint);font-size:12px}
 </style>
 </head>
 <body>
@@ -266,8 +333,9 @@ input:focus{border-color:var(--primary)}
   <!-- Mode tabs -->
   <div class="mode-tabs">
     <div class="mode-tab active" id="tab-normal" onclick="setMode('normal')">一般</div>
+    <div class="mode-tab" id="tab-steps"  onclick="setMode('steps')">👟 步數</div>
     <div class="mode-tab" id="tab-cruise" onclick="setMode('cruise')">巡航</div>
-    <div class="mode-tab" id="tab-fav" onclick="setMode('fav')">⭐ 最愛</div>
+    <div class="mode-tab" id="tab-fav"    onclick="setMode('fav')">⭐ 最愛</div>
   </div>
 
   <!-- ── NORMAL PANEL ── -->
@@ -304,8 +372,10 @@ input:focus{border-color:var(--primary)}
     <div>
       <div class="sec-hdr" style="margin-bottom:8px">手動輸入座標</div>
       <div class="field-row" style="margin-bottom:6px">
-        <input type="number" id="in-lat" placeholder="Lat" step="0.0001" value="25.0330">
-        <input type="number" id="in-lon" placeholder="Lon" step="0.0001" value="121.5654">
+        <input type="text" id="in-coord" placeholder="Lat, Lon（如：25.0330, 121.5654）"
+          value="25.0330, 121.5654"
+          onkeydown="if(event.key==='Enter') gotoInput()"
+          style="font-family:'SF Mono',Menlo,monospace;font-size:12px">
       </div>
       <button class="go-btn" style="width:100%" onclick="gotoInput()">設定座標 →</button>
     </div>
@@ -344,6 +414,149 @@ input:focus{border-color:var(--primary)}
     <div class="hint">ℹ 點擊地圖設定定位；方向鍵 / WASD 移動</div>
   </div><!-- end panel-normal -->
 
+  <!-- ── STEPS PANEL ── -->
+  <div class="panel hidden" id="panel-steps">
+
+    <!-- 目前步數 -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="sec-hdr">目前步數（本機記錄）</div>
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="refreshSteps()">↻ 刷新</button>
+      </div>
+      <div class="steps-display-card">
+        <div class="steps-num" id="steps-display">—</div>
+        <div class="steps-unit">步</div>
+      </div>
+    </div>
+
+    <!-- 快速增加 -->
+    <div>
+      <div class="sec-hdr" style="margin-bottom:8px">快速增加</div>
+      <div class="step-quick-grid">
+        <button class="btn-step" onclick="addSteps(100)">+100</button>
+        <button class="btn-step" onclick="addSteps(1000)">+1,000</button>
+        <button class="btn-step" onclick="addSteps(2000)">+2,000</button>
+        <button class="btn-step" onclick="addSteps(3000)">+3,000</button>
+        <button class="btn-step" onclick="addSteps(5000)">+5,000</button>
+        <button class="btn-step" onclick="addSteps(10000)">+10,000</button>
+      </div>
+    </div>
+
+    <!-- 管理步數 -->
+    <div>
+      <div class="sec-hdr" style="margin-bottom:8px">管理步數</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div>
+          <div class="field-label">自訂增加步數</div>
+          <div class="field-row">
+            <input type="number" id="steps-add-input" placeholder="輸入步數" min="1" step="1"
+              style="text-align:center" onkeydown="if(event.key==='Enter') addStepsCustom()">
+            <button class="go-btn" onclick="addStepsCustom()">增加</button>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">刪除步數</div>
+          <div class="field-row">
+            <input type="number" id="steps-del-input" placeholder="輸入步數" min="1" step="1"
+              style="text-align:center" onkeydown="if(event.key==='Enter') deleteSteps()">
+            <button class="go-btn" style="background:var(--err);border-color:var(--err)"
+              onclick="deleteSteps()">刪除</button>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" style="flex:1;font-size:12px" onclick="resetSteps()">🗑 清零步數</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模擬行走 -->
+    <div>
+      <div class="sec-hdr" style="margin-bottom:8px">模擬行走</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="walk-grid-3">
+          <div class="walk-field">
+            <div class="field-label">每隔（秒）</div>
+            <input type="number" id="walk-interval" value="5" min="1" max="3600"
+              style="text-align:center" oninput="_updateWalkEta()">
+          </div>
+          <div class="walk-field">
+            <div class="field-label">增加（步）</div>
+            <input type="number" id="walk-steps-per" value="10" min="1"
+              style="text-align:center" oninput="_updateWalkEta()">
+          </div>
+          <div class="walk-field">
+            <div class="field-label">持續（秒）</div>
+            <input type="number" id="walk-duration" value="300" min="1"
+              style="text-align:center" oninput="_updateWalkEta()">
+          </div>
+        </div>
+        <!-- Walk ETA hint -->
+        <div id="walk-eta" style="font-size:11px;color:var(--muted)"></div>
+        <!-- Walk progress -->
+        <div id="walk-progress-section" class="hidden">
+          <div class="progress-wrap">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="sec-hdr">行走進度</span>
+              <span id="walk-status-text" style="font-size:11px;color:var(--success)"></span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="walk-progress-fill"></div></div>
+            <div class="progress-text" id="walk-progress-text">0 / 0 秒</div>
+          </div>
+        </div>
+        <!-- Walk buttons -->
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-walk-play" onclick="startWalking()" style="flex:1">▶ 開始行走</button>
+          <button class="btn btn-ghost"   id="btn-walk-stop" onclick="stopWalking()" disabled>■ 停止</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 捷徑設定 -->
+    <div style="border-top:1px solid var(--border);padding-top:2px">
+      <div class="tunnel-toggle" style="padding:9px 0" onclick="toggleShortcutGuide()">
+        <span class="arrow" id="sc-arrow">▶</span>
+        <span id="sc-toggle-label" style="flex:1">🔗 iPhone 捷徑設定</span>
+        <span id="sc-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--faint);flex-shrink:0"></span>
+      </div>
+      <div id="sc-guide" style="display:none;flex-direction:column;gap:10px">
+        <!-- 捷徑名稱 -->
+        <div>
+          <div class="field-label">iPhone 捷徑名稱（需與手機上一致）</div>
+          <div class="field-row">
+            <input type="text" id="sc-name-input" placeholder="GPS步數增加" style="font-size:12px">
+            <button class="go-btn" onclick="saveShortcutName()">套用</button>
+          </div>
+        </div>
+        <!-- 狀態 -->
+        <div id="sc-status-area" style="font-size:11px;color:var(--muted);line-height:1.8;background:var(--bg);border-radius:6px;padding:9px 10px;border:1px solid var(--border)"></div>
+        <!-- 待確認 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px">
+          <span style="color:var(--muted)">等待 Health 確認</span>
+          <span id="sc-pending" style="font-family:'SF Mono',Menlo,monospace;color:var(--warn);font-weight:600">—</span>
+        </div>
+        <!-- 捷徑建立說明 -->
+        <div class="hint" style="flex-direction:column;gap:3px;line-height:1.75;font-size:11px">
+          <b style="font-size:12px">📱 iPhone 捷徑設定步驟</b>
+          <span>1. 在 iPhone 打開「捷徑」App → 新增捷徑</span>
+          <span>2. 名稱設為上方輸入的名稱（完全一致）</span>
+          <span>3. 加入動作：「記錄健康數據」</span>
+          <span>&nbsp;&nbsp;&nbsp;— 類型：步數 &nbsp;— 數量：捷徑輸入</span>
+          <span>4. 捷徑設定 → 開啟「不需確認即可執行」</span>
+          <span>5. 回到 Mac，按下步數按鈕即可自動觸發</span>
+        </div>
+        <!-- 輪詢備援說明 -->
+        <div id="sc-poll-section" class="hidden" style="background:rgba(232,175,52,.07);border:1px solid rgba(232,175,52,.25);border-radius:6px;padding:9px 10px;font-size:10.5px;line-height:1.75;color:var(--warn)">
+          <b>⚠ xcrun 未安裝（Xcode 15+ 才有）</b><br>
+          <span style="color:var(--muted)">備援：建立第二個捷徑「步數輪詢」自動從這裡取數：</span><br>
+          <span id="sc-poll-url" style="font-family:'SF Mono',Menlo,monospace;font-size:10px;word-break:break-all;color:var(--text);cursor:pointer" onclick="copyPollUrl()"></span><br>
+          <span style="color:var(--muted)">（點擊複製）取得後寫入 Health，再 POST /shortcut/ack 確認</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint">ℹ 步數實際寫入 iPhone Health 需搭配上方捷徑設定</div>
+  </div><!-- end panel-steps -->
+
   <!-- ── CRUISE PANEL ── -->
   <div class="panel hidden" id="panel-cruise">
     <div class="hint" style="background:rgba(232,175,52,.08);border-color:rgba(232,175,52,.25);color:var(--warn)">
@@ -356,6 +569,23 @@ input:focus{border-color:var(--primary)}
       </div>
       <div class="wp-list" id="wp-list"><div class="wp-empty">尚無航點</div></div>
     </div>
+
+    <!-- 批次貼上座標 -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div class="sec-hdr">批次貼上座標</div>
+        <button class="btn btn-ghost" style="padding:2px 7px;font-size:10px" onclick="clearPasteArea()">清除</button>
+      </div>
+      <textarea id="paste-coords-area" class="paste-area"
+        oninput="onPasteAreaInput()"
+        placeholder="每行一個座標，支援格式：
+25.0330, 121.5654
+25.0480 121.5168
+25.0600,121.5300"></textarea>
+      <div id="paste-preview" class="paste-preview"></div>
+      <button class="go-btn" style="width:100%;margin-top:6px" onclick="applyPastedCoords()">套用座標 →</button>
+    </div>
+
     <div>
       <div class="sec-hdr" style="margin-bottom:8px">移動速度</div>
       <div class="field-row" style="align-items:center;gap:8px">
@@ -378,21 +608,29 @@ input:focus{border-color:var(--primary)}
     </div>
     <div id="progress-section" class="hidden">
       <div class="progress-wrap">
-        <div style="display:flex;justify-content:space-between">
+        <div style="display:flex;justify-content:space-between;align-items:center">
           <span class="sec-hdr">播放進度</span>
           <span id="play-status-text" style="font-size:11px;color:var(--primary)"></span>
         </div>
         <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-        <div class="progress-text" id="progress-text">0 / 0</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="progress-text" id="progress-text">0 / 0</div>
+          <div id="pause-label" class="hidden" style="font-size:10.5px;color:var(--warn);font-weight:600">⏸ 已暫停</div>
+        </div>
       </div>
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" id="btn-play" onclick="playCruise()" style="flex:1">▶ 播放</button>
-      <button class="btn btn-ghost" id="btn-stop" onclick="stopCruise()" disabled>■ 停止</button>
+      <button class="btn btn-ghost"   id="btn-pause" onclick="pauseCruise()" disabled>⏸ 暫停</button>
+      <button class="btn btn-ghost"   id="btn-stop"  onclick="stopCruise()"  disabled>■ 停止</button>
     </div>
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="exportGPX()" style="flex:1">⬇ 匯出 GPX</button>
       <button class="btn btn-ghost" onclick="undoWaypoint()" title="撤銷">↩</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="openSaveCruiseModal()" style="flex:1">💾 儲存路線</button>
+      <button class="btn btn-ghost" onclick="openLoadCruiseModal()" style="flex:1">📂 讀取路線</button>
     </div>
   </div><!-- end panel-cruise -->
 
@@ -400,10 +638,13 @@ input:focus{border-color:var(--primary)}
   <div class="panel hidden" id="panel-fav">
     <div class="btn-row">
       <button class="btn btn-primary" style="flex:1" onclick="addCurrentToFav()">⭐ 加入目前位置</button>
+      <button class="btn btn-ghost"   style="flex:1" onclick="addManualFav()">✚ 手動加入</button>
     </div>
     <div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="sec-hdr">我的最愛 <span id="fav-count" style="color:var(--primary);font-weight:600">0</span></div>
+      <div class="fav-toolbar">
+        <div class="sec-hdr" style="flex:1">我的最愛 <span id="fav-count" style="color:var(--primary);font-weight:600">0</span></div>
+        <button class="fav-btn fav-btn-order" id="btn-fav-up"   onclick="moveFavSelected('up')"   title="選取項目往上移" disabled>↑</button>
+        <button class="fav-btn fav-btn-order" id="btn-fav-down" onclick="moveFavSelected('down')" title="選取項目往下移" disabled>↓</button>
         <button class="device-scan-btn" onclick="clearAllFavs()">清除全部</button>
       </div>
       <div id="fav-list"><div class="fav-empty">尚無儲存地點<br>點擊 ⭐ 或從搜尋結果加入</div></div>
@@ -439,6 +680,49 @@ input:focus{border-color:var(--primary)}
 
 </div>
 
+<!-- 修改地點 Modal -->
+<div id="fav-modal" class="fav-modal hidden">
+  <div class="fav-modal-box">
+    <div class="fav-modal-title" id="fav-modal-title">✎ 修改地點</div>
+    <div class="fav-modal-label">名稱</div>
+    <input id="fm-name" type="text" placeholder="地點名稱">
+    <div class="fav-modal-label">緯度 Lat</div>
+    <input id="fm-lat" type="number" step="0.00001" placeholder="25.03300">
+    <div class="fav-modal-label">經度 Lon</div>
+    <input id="fm-lon" type="number" step="0.00001" placeholder="121.56540">
+    <div class="fav-modal-btns">
+      <button class="btn-cancel" onclick="favModalCancel()">取消</button>
+      <button class="btn-confirm" onclick="favModalConfirm()">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- 儲存巡航路線 Modal -->
+<div id="cruise-save-modal" class="cruise-modal hidden">
+  <div class="cruise-modal-box">
+    <div class="cruise-modal-title">💾 儲存巡航路線</div>
+    <div class="fav-modal-label">路線名稱</div>
+    <input id="csm-name" type="text" placeholder="例：台北市區繞行"
+      onkeydown="if(event.key==='Enter') confirmSaveCruise(); if(event.key==='Escape') closeSaveCruiseModal()">
+    <div style="font-size:10.5px;color:var(--muted)" id="csm-info"></div>
+    <div class="fav-modal-btns">
+      <button class="btn-cancel" onclick="closeSaveCruiseModal()">取消</button>
+      <button class="btn-confirm" onclick="confirmSaveCruise()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 讀取巡航路線 Modal -->
+<div id="cruise-load-modal" class="cruise-modal hidden">
+  <div class="cruise-modal-box">
+    <div class="cruise-modal-title">📂 讀取巡航路線</div>
+    <div class="cruise-route-list" id="cruise-route-list"></div>
+    <div class="fav-modal-btns">
+      <button class="btn-cancel" style="flex:none;padding:7px 18px" onclick="closeLoadCruiseModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ── Settings ──────────────────────────────────────────────────────
@@ -463,6 +747,7 @@ window.onload = () => {
   initMap();
   refreshDevices();
   loadFavorites();
+  loadCruiseRoutes();
   setInterval(pollDevices, POLL_MS);
 };
 
@@ -500,23 +785,34 @@ function getOrCreateMarkers(idx) {
 // ── Map Click ──────────────────────────────────────────────────────
 function onMapClick(e) {
   const { lat, lng } = e.latlng;
-  if (state.mode === 'normal') gotoCoord(lat, lng);
-  else if (state.mode === 'cruise' && !state.playing) addWaypoint(lat, lng);
+  if (state.mode === 'normal') {
+    gotoCoord(lat, lng);
+  } else if (state.mode === 'cruise' && !state.playing) {
+    addWaypoint(lat, lng);
+  } else if (state.mode === 'fav') {
+    // In favorites mode a map click means "go here" → switch to normal & set.
+    setMode('normal');
+    gotoCoord(lat, lng);
+  }
 }
 
 // ── Mode Toggle ────────────────────────────────────────────────────
 function setMode(m) {
   state.mode = m;
   document.getElementById('panel-normal').classList.toggle('hidden', m !== 'normal');
+  document.getElementById('panel-steps').classList.toggle('hidden',  m !== 'steps');
   document.getElementById('panel-cruise').classList.toggle('hidden', m !== 'cruise');
-  document.getElementById('panel-fav').classList.toggle('hidden', m !== 'fav');
+  document.getElementById('panel-fav').classList.toggle('hidden',    m !== 'fav');
   document.getElementById('tab-normal').classList.toggle('active', m === 'normal');
+  document.getElementById('tab-steps').classList.toggle('active',  m === 'steps');
   document.getElementById('tab-cruise').classList.toggle('active', m === 'cruise');
-  document.getElementById('tab-fav').classList.toggle('active', m === 'fav');
-  const badges = { normal:'📍 一般模式', cruise:'🗺 巡航模式', fav:'⭐ 我的最愛' };
+  document.getElementById('tab-fav').classList.toggle('active',    m === 'fav');
+  const badges = { normal:'📍 一般模式', steps:'👟 步數', cruise:'🗺 巡航模式', fav:'⭐ 我的最愛' };
   document.getElementById('mode-badge').textContent = badges[m] || '';
   document.getElementById('map-hint').classList.toggle('hidden', m !== 'cruise');
-  if (m === 'fav') renderFavorites();
+  if (m !== 'fav' && _favTimeInterval) { clearInterval(_favTimeInterval); _favTimeInterval = null; }
+  if (m === 'fav')   renderFavorites();
+  if (m === 'steps') { refreshSteps(); _updateWalkEta(); }
 }
 
 // ── Device List ────────────────────────────────────────────────────
@@ -543,7 +839,22 @@ async function refreshDevices() {
 function renderDeviceList(devs) {
   const el = document.getElementById('device-list');
   if (!devs.length) { el.innerHTML = '<div class="no-devices">無已連線裝置</div>'; return; }
-  el.innerHTML = devs.map(d => {
+
+  // Sync-all virtual card (shown whenever there are devices; useful w/ 2+)
+  const connCount = devs.filter(d => d.connected).length;
+  const syncSel   = state.deviceIdx === 'all' ? 'selected' : '';
+  const syncDot   = connCount === devs.length && connCount > 0 ? 'ok'
+                  : (connCount > 0 ? 'connecting' : 'err');
+  const syncCard = `<div class="device-card sync-card ${syncSel}" onclick="selectDevice('all')">
+    <div class="dc-dot ${syncDot}"></div>
+    <div class="dc-info">
+      <div class="dc-name">🔗 同步全部裝置</div>
+      <div class="dc-sub">${connCount} / ${devs.length} 台已連線</div>
+    </div>
+    ${state.deviceIdx === 'all' ? '<div class="dc-badge">使用中</div>' : ''}
+  </div>`;
+
+  const cards = devs.map(d => {
     const dotCls = d.connected ? 'ok' : (d.tunnel_ok ? 'connecting' : 'err');
     const sub = d.connected
       ? (d.simulating ? `模擬中 · ${d.last_lat?.toFixed(4) ?? '—'}, ${d.last_lon?.toFixed(4) ?? '—'}` : `已連線 · iOS ${d.ios}`)
@@ -558,10 +869,23 @@ function renderDeviceList(devs) {
       ${state.deviceIdx === d.idx ? '<div class="dc-badge">使用中</div>' : ''}
     </div>`;
   }).join('');
+
+  el.innerHTML = syncCard + cards;
 }
 
 function selectDevice(idx, showToastMsg = true) {
   state.deviceIdx = idx;
+
+  // Sync-all virtual device
+  if (idx === 'all') {
+    document.getElementById('hud-dev').textContent = '🔗 全部同步';
+    if (showToastMsg) showToast('已切換至同步模式（全部裝置）', 'ok');
+    renderDeviceList(state.devices);
+    // Pre-create markers for every device so they appear immediately
+    state.devices.forEach(d => { getOrCreateMarkers(d.idx); });
+    return;
+  }
+
   const dev = state.devices.find(d => d.idx === idx);
   if (dev) {
     document.getElementById('hud-dev').textContent = dev.name;
@@ -582,6 +906,42 @@ async function pollDevices() {
     const devs = await fetch(`${META}/devices`).then(r => r.json());
     state.devices = devs;
     renderDeviceList(devs);
+
+    // Sync-all mode: render aggregate status; markers track each device's own coords.
+    if (state.deviceIdx === 'all') {
+      if (!devs.length) {
+        state.deviceIdx = null;
+        document.getElementById('hud-dev').textContent = '未選擇裝置';
+        return;
+      }
+      const conns = devs.filter(d => d.connected);
+      const sims  = devs.filter(d => d.simulating);
+      const total = devs.reduce((s, d) => s + (d.set_count || 0), 0);
+      const maxUp = Math.max(0, ...devs.map(d => d.uptime_sec || 0));
+
+      document.getElementById('sv-connected').textContent = `${conns.length} / ${devs.length} 台`;
+      document.getElementById('sv-connected').className   = `status-val ${conns.length === devs.length && conns.length ? 'ok' : (conns.length ? 'warn' : 'err')}`;
+      document.getElementById('sv-simulating').textContent= `${sims.length} / ${devs.length} 台`;
+      document.getElementById('sv-simulating').className  = `status-val ${sims.length ? 'ok' : 'warn'}`;
+      document.getElementById('sv-count').textContent     = total;
+      document.getElementById('sv-uptime').textContent    = fmtTime(maxUp);
+
+      // Move each device's marker to its own reported coords (may differ briefly during fan-out).
+      devs.forEach(d => {
+        if (d.last_lat == null || d.last_lon == null) return;
+        const m = getOrCreateMarkers(d.idx);
+        m.phone.setLatLng([d.last_lat, d.last_lon]);
+        m.pulse.setLatLng([d.last_lat, d.last_lon]);
+      });
+
+      // Surface the first new error from any device
+      const errDev = devs.find(d => d.error);
+      if (errDev && errDev.error !== window.lastErr) {
+        window.lastErr = errDev.error;
+        showToast(`[${errDev.name}] ${errDev.error}`, 'err');
+      } else if (conns.length) window.lastErr = null;
+      return;
+    }
 
     const cur = devs.find(d => d.idx === state.deviceIdx);
     if (!cur) {
@@ -620,37 +980,57 @@ async function pollDevices() {
 
 // ── Set Coordinates ────────────────────────────────────────────────
 function gotoCoord(lat, lon, silent = false) {
+  // If the cruise is running and this is a real user-initiated move (not the
+  // cruise stepping itself, and not a silent reconnect-sync), auto-pause so
+  // the manual position isn't immediately overwritten by the next cruise step.
+  if (state.playing && !_cruiseInternalMove && !silent) {
+    pauseCruise();
+    showToast('⏸ 巡航已暫停（手動移動）', 'ok');
+  }
   state.lat = lat; state.lon = lon;
 
-  // Update map marker for selected device
-  if (state.deviceIdx !== null) {
+  // Update map marker(s): all devices in sync mode, else only selected.
+  if (state.deviceIdx === 'all') {
+    state.devices.forEach(d => {
+      const m = getOrCreateMarkers(d.idx);
+      m.phone.setLatLng([lat, lon]);
+      m.pulse.setLatLng([lat, lon]);
+    });
+  } else if (state.deviceIdx !== null) {
     const m = getOrCreateMarkers(state.deviceIdx);
     m.phone.setLatLng([lat, lon]);
     m.pulse.setLatLng([lat, lon]);
   }
   document.getElementById('disp-lat').textContent = lat.toFixed(6);
   document.getElementById('disp-lon').textContent = lon.toFixed(6);
-  document.getElementById('in-lat').value = lat.toFixed(6);
-  document.getElementById('in-lon').value = lon.toFixed(6);
+  document.getElementById('in-coord').value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
   scheduleTzUpdate(lat, lon);
 
   if (!silent) {
     if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
-    fetch(`${META}/device/${state.deviceIdx}/set`, {
+    const url = state.deviceIdx === 'all'
+      ? `${META}/devices/set`
+      : `${META}/device/${state.deviceIdx}/set`;
+    fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lat, lon })
     }).then(r => r.json()).then(r => {
-      if (r.ok) showToast(`${lat.toFixed(5)}, ${lon.toFixed(5)}`, 'ok');
+      if (r.ok) {
+        const tag = state.deviceIdx === 'all' ? ` · ${r.count} 台同步` : '';
+        showToast(`${lat.toFixed(5)}, ${lon.toFixed(5)}${tag}`, 'ok');
+      }
       else showToast(r.error, 'err');
     }).catch(() => showToast('無法連線 Launcher', 'err'));
   }
 }
 
 function gotoInput() {
-  const lat = parseFloat(document.getElementById('in-lat').value);
-  const lon = parseFloat(document.getElementById('in-lon').value);
-  if (isNaN(lat) || isNaN(lon)) { showToast('座標格式錯誤', 'err'); return; }
+  const raw   = document.getElementById('in-coord').value.replace(/\s/g, '');
+  const parts = raw.split(',');
+  const lat   = parseFloat(parts[0]);
+  const lon   = parseFloat(parts[1]);
+  if (isNaN(lat) || isNaN(lon)) { showToast('格式錯誤，請輸入「Lat, Lon」', 'err'); return; }
   gotoCoord(lat, lon);
   map.setView([lat, lon]);
 }
@@ -672,9 +1052,15 @@ function pan(dir) {
 // ── Clear GPS ─────────────────────────────────────────────────────
 function clearLocation() {
   if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
-  fetch(`${META}/device/${state.deviceIdx}/clear`, { method: 'POST' })
+  const url = state.deviceIdx === 'all'
+    ? `${META}/devices/clear`
+    : `${META}/device/${state.deviceIdx}/clear`;
+  fetch(url, { method: 'POST' })
     .then(r => r.json()).then(r => {
-      if (r.ok) showToast('GPS 模擬已停止', 'ok');
+      if (r.ok) {
+        const tag = state.deviceIdx === 'all' ? ` (${r.count} 台)` : '';
+        showToast(`GPS 模擬已停止${tag}`, 'ok');
+      }
       else showToast(r.error, 'err');
     }).catch(() => showToast('無法連線 Launcher', 'err'));
 }
@@ -704,6 +1090,120 @@ function removeWaypoint(i) {
   updateWpList(); updateRoute(); updateRouteInfo();
 }
 function undoWaypoint() { if (wpData.length) removeWaypoint(wpData.length - 1); }
+
+// ── Batch paste coordinates ────────────────────────────────────────
+
+/**
+ * Normalize a single line so spaces don't interfere with number extraction.
+ *
+ * Rule: if the line contains a comma it is comma-separated → every space is
+ * noise, strip them all (e.g. "25. 0330 , 121 .5654" → "25.0330,121.5654").
+ * If no comma: keep exactly one space as the separator but remove any space
+ * that has crept inside a number adjacent to a digit or decimal point
+ * (e.g. "25. 033 0  121.5654" → "25.0330 121.5654").
+ */
+// Normalize a single line (used only for pure-space-separated data).
+// Does NOT strip spaces wholesale — only fixes spaces adjacent to decimal points.
+function _normalizeLine(line) {
+  let s = line.trim();
+  if (!s) return '';
+  return s
+    .replace(/(\d)\s+\./g, '$1.')   // "25 ."  → "25."
+    .replace(/\.\s+(\d)/g, '.$1')   // ". 03"  → ".03"
+    .replace(/\s+/g, ' ');           // collapse multi-spaces → single space
+}
+
+function _parsePastedCoords(text) {
+  const results = [];
+
+  if (text.includes(',')) {
+    // ── Comma mode ──────────────────────────────────────────────────
+    // Scan the entire text for all "number , number" pairs regardless
+    // of line breaks or how many pairs appear on the same line.
+    // e.g. "31.04,76.71 31.03,76.72\n31.02,76.73" → 3 pairs ✓
+    const re = /(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const lat = parseFloat(m[1]);
+      const lon = parseFloat(m[2]);
+      if (isNaN(lat) || isNaN(lon)) continue;
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+      results.push({ lat, lon });
+    }
+    return results;
+  }
+
+  // ── Space mode: process line by line ───────────────────────────────
+  for (const line of text.split(/\r?\n/)) {
+    const s = _normalizeLine(line);
+    if (!s || s.startsWith('#')) continue;
+    const nums = s.match(/-?\d+(?:\.\d+)?/g);
+    if (!nums || nums.length < 2) continue;
+    const lat = parseFloat(nums[0]);
+    const lon = parseFloat(nums[1]);
+    if (isNaN(lat) || isNaN(lon)) continue;
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+    results.push({ lat, lon });
+  }
+  return results;
+}
+
+function _applyNormalization() {
+  const ta = document.getElementById('paste-coords-area');
+  // Only apply decimal-point fixes, never strip spaces wholesale.
+  const cleaned = ta.value.split(/\r?\n/).map(_normalizeLine).join('\n');
+  if (cleaned !== ta.value) ta.value = cleaned;
+}
+
+function onPasteAreaInput() {
+  _applyNormalization();
+  previewPastedCoords();
+}
+
+function previewPastedCoords() {
+  const text = document.getElementById('paste-coords-area').value;
+  const el   = document.getElementById('paste-preview');
+  if (!text.trim()) { el.textContent = ''; el.className = 'paste-preview'; return; }
+  const coords = _parsePastedCoords(text);
+  if (!coords.length) {
+    el.textContent = '⚠ 未偵測到有效座標';
+    el.className = 'paste-preview err';
+  } else {
+    el.textContent = `✓ 偵測到 ${coords.length} 個座標`;
+    el.className = 'paste-preview ok';
+  }
+}
+
+function clearPasteArea() {
+  document.getElementById('paste-coords-area').value = '';
+  document.getElementById('paste-preview').textContent = '';
+  document.getElementById('paste-preview').className = 'paste-preview';
+}
+
+function applyPastedCoords() {
+  const text   = document.getElementById('paste-coords-area').value.trim();
+  if (!text) { showToast('請先貼上座標', 'err'); return; }
+  const coords = _parsePastedCoords(text);
+  if (!coords.length) { showToast('找不到有效座標，請確認格式', 'err'); return; }
+
+  if (wpData.length > 0) {
+    if (!confirm(`目前已有 ${wpData.length} 個航點，確定替換成新的 ${coords.length} 個座標嗎？`)) return;
+  }
+
+  if (state.playing) stopCruise();
+  clearWaypoints();
+  coords.forEach(c => addWaypoint(c.lat, c.lon));
+
+  // Fit map to show all new waypoints
+  if (coords.length >= 2) {
+    map.fitBounds(L.latLngBounds(coords.map(c => [c.lat, c.lon])), { padding: [50, 50] });
+  } else {
+    map.setView([coords[0].lat, coords[0].lon], 15);
+  }
+
+  showToast(`✅ 已加入 ${coords.length} 個航點`, 'ok');
+  document.getElementById('paste-preview').textContent = `✓ ${coords.length} 個座標已套用`;
+}
 function clearWaypoints() {
   wpMarkers.forEach(m => map.removeLayer(m));
   wpMarkers = []; wpData = [];
@@ -765,70 +1265,119 @@ function haversine(la1,lo1,la2,lo2) {
 }
 
 // ── Cruise (frontend only) ─────────────────────────────────────────
-async function playCruise() {
-  if (wpData.length < 2) { showToast('請至少加入 2 個航點', 'err'); return; }
-  if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
-  state.playing = true;
-  document.getElementById('btn-play').disabled = true;
-  document.getElementById('btn-stop').disabled = false;
-  document.getElementById('progress-section').classList.remove('hidden');
-  document.getElementById('cruise-hint-text').textContent = '巡航中...';
+// Module-level cruise state — survives pause/resume across GPS changes
+let _cruisePath   = [];   // full interpolated path
+let _cruiseSi     = 0;    // current step index
+let _cruisePaused = false; // true while user has paused
+let _cruiseInternalMove = false; // true only while the cruise itself is driving gotoCoord
 
-  // Build per-second interpolated path from waypoints
-  function buildPath(pts, kmh) {
-    const mps = kmh * 1000 / 3600;
-    const path = [];
-    const segs = pts.length - 1;
-    for (let i = 0; i < segs; i++) {
-      const A = pts[i], B = pts[i + 1];
-      const dist = haversine(A.lat, A.lon, B.lat, B.lon);
-      const steps = Math.max(1, Math.round(dist / mps));
-      for (let s = 0; s < steps; s++) {
-        const t = s / steps;
-        path.push({
-          lat: A.lat + (B.lat - A.lat) * t,
-          lon: A.lon + (B.lon - A.lon) * t,
-          progress: (i + t) / segs,
-          label: `${i+1}→${i+2}`,
-        });
-      }
+// Build per-second interpolated path from waypoints
+function _buildCruisePath(pts, kmh) {
+  const mps  = kmh * 1000 / 3600;
+  const path = [];
+  const segs = pts.length - 1;
+  for (let i = 0; i < segs; i++) {
+    const A = pts[i], B = pts[i + 1];
+    const dist  = haversine(A.lat, A.lon, B.lat, B.lon);
+    const steps = Math.max(1, Math.round(dist / mps));
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      path.push({
+        lat: A.lat + (B.lat - A.lat) * t,
+        lon: A.lon + (B.lon - A.lon) * t,
+        progress: (i + t) / segs,
+        label: `${i+1}→${i+2}`,
+      });
     }
-    path.push({ lat: pts[segs].lat, lon: pts[segs].lon, progress: 1, label: `${segs+1}` });
-    return path;
+  }
+  path.push({ lat: pts[segs].lat, lon: pts[segs].lon, progress: 1, label: `${segs+1}` });
+  return path;
+}
+
+function _cruiseStep() {
+  if (!state.playing) return;
+  if (_cruiseSi >= _cruisePath.length) {
+    if (state.loop) {
+      _cruisePath = _buildCruisePath([...wpData], state.speed); // rebuild in case speed changed
+      _cruiseSi   = 0;
+    } else {
+      finishCruise(); return;
+    }
+  }
+  const pt = _cruisePath[_cruiseSi];
+  _cruiseInternalMove = true;
+  gotoCoord(pt.lat, pt.lon);
+  _cruiseInternalMove = false;
+  document.getElementById('progress-fill').style.width = `${(pt.progress * 100).toFixed(0)}%`;
+  document.getElementById('progress-text').textContent = `步 ${_cruiseSi + 1} / ${_cruisePath.length}`;
+  document.getElementById('play-status-text').textContent = pt.label;
+  _cruiseSi++;
+  state.cruiseTimer = setTimeout(_cruiseStep, 1000);
+}
+
+function _setCruiseBtns({ play, pause, stop }) {
+  document.getElementById('btn-play').disabled  = !play;
+  document.getElementById('btn-pause').disabled = !pause;
+  document.getElementById('btn-stop').disabled  = !stop;
+}
+
+async function playCruise() {
+  // ── Resume from pause ──────────────────────────────────────────
+  if (_cruisePaused) {
+    _cruisePaused = false;
+    state.playing = true;
+    _setCruiseBtns({ play: false, pause: true, stop: true });
+    document.getElementById('btn-play').textContent = '▶ 播放';
+    document.getElementById('cruise-hint-text').textContent = '巡航中...';
+    document.getElementById('pause-label').classList.add('hidden');
+    _cruiseStep();
+    return;
   }
 
-  let path = buildPath([...wpData], state.speed);
-  let si = 0;
+  // ── Fresh start ────────────────────────────────────────────────
+  if (wpData.length < 2) { showToast('請至少加入 2 個航點', 'err'); return; }
+  if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
 
-  const step = () => {
-    if (!state.playing) return;
-    if (si >= path.length) {
-      if (state.loop) {
-        path = buildPath([...wpData], state.speed); // Rebuild path in case speed changed
-        si = 0;
-      } else {
-        finishCruise(); return;
-      }
-    }
-    const pt = path[si];
-    gotoCoord(pt.lat, pt.lon);
-    document.getElementById('progress-fill').style.width = `${(pt.progress * 100).toFixed(0)}%`;
-    document.getElementById('progress-text').textContent = `步 ${si + 1} / ${path.length}`;
-    document.getElementById('play-status-text').textContent = pt.label;
-    si++;
-    state.cruiseTimer = setTimeout(step, 1000);
-  };
-  step();
+  state.playing = true;
+  _cruisePaused = false;
+  _cruisePath   = _buildCruisePath([...wpData], state.speed);
+  _cruiseSi     = 0;
+
+  _setCruiseBtns({ play: false, pause: true, stop: true });
+  document.getElementById('progress-section').classList.remove('hidden');
+  document.getElementById('pause-label').classList.add('hidden');
+  document.getElementById('cruise-hint-text').textContent = '巡航中...';
+  _cruiseStep();
 }
+
+function pauseCruise() {
+  if (!state.playing) return;
+  if (state.cruiseTimer) { clearTimeout(state.cruiseTimer); state.cruiseTimer = null; }
+  state.playing = false;
+  _cruisePaused = true;
+  _setCruiseBtns({ play: true, pause: false, stop: true });
+  document.getElementById('btn-play').textContent = '▶ 繼續';
+  document.getElementById('cruise-hint-text').textContent = '⏸ 已暫停 — 按「繼續」從中斷處恢復';
+  document.getElementById('play-status-text').textContent = '⏸';
+  document.getElementById('pause-label').classList.remove('hidden');
+  showToast('⏸ 已暫停', 'ok');
+}
+
 function stopCruise() {
   if (state.cruiseTimer) { clearTimeout(state.cruiseTimer); state.cruiseTimer = null; }
+  _cruisePaused = false;
+  _cruisePath   = [];
+  _cruiseSi     = 0;
   finishCruise();
 }
+
 function finishCruise() {
   state.playing = false;
-  document.getElementById('btn-play').disabled = false;
-  document.getElementById('btn-stop').disabled = true;
+  _cruisePaused = false;
+  _setCruiseBtns({ play: true, pause: false, stop: false });
+  document.getElementById('btn-play').textContent = '▶ 播放';
   document.getElementById('progress-section').classList.add('hidden');
+  document.getElementById('pause-label').classList.add('hidden');
   document.getElementById('cruise-hint-text').textContent = '點擊地圖依序加入航點，完成後按播放';
   if (!state.loop) showToast('巡航完成', 'ok');
 }
@@ -842,6 +1391,367 @@ function exportGPX() {
   a.href = URL.createObjectURL(new Blob([xml], { type:'application/gpx+xml' }));
   a.download = 'cruise_route.gpx'; a.click();
   showToast('GPX 已匯出', 'ok');
+}
+
+// ── Steps management ─────────────────────────────────────────────
+let _walkTimer   = null;
+let _walkElapsed = 0;
+let _walkDuration = 300;
+let _walkInterval = 5;
+let _walkStepsPer = 10;
+
+async function refreshSteps() {
+  if (state.deviceIdx === null || state.deviceIdx === 'all') {
+    // In sync mode show the first device's count (or dash)
+    if (state.deviceIdx === 'all' && state.devices.length) {
+      const el = document.getElementById('steps-display');
+      const total = state.devices.reduce((s, d) => s + (d.steps || 0), 0);
+      el.textContent = total.toLocaleString();
+    } else {
+      document.getElementById('steps-display').textContent = '—';
+    }
+    return;
+  }
+  try {
+    const res = await fetch(`${META}/device/${state.deviceIdx}/steps`).then(r => r.json());
+    if (res.ok) document.getElementById('steps-display').textContent = res.steps.toLocaleString();
+  } catch(e) {}
+}
+
+async function addSteps(count) {
+  if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
+  const url = state.deviceIdx === 'all'
+    ? `${META}/devices/steps/add`
+    : `${META}/device/${state.deviceIdx}/steps/add`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count }),
+    }).then(r => r.json());
+    if (res.ok) {
+      // Update display: use per-device total or broadcast total
+      const disp = state.deviceIdx === 'all'
+        ? Object.values(res.device_steps || {}).reduce((s, v) => s + v, 0)
+        : res.steps;
+      document.getElementById('steps-display').textContent = disp.toLocaleString();
+      showToast(`+${count.toLocaleString()} 步`, 'ok');
+      _refreshShortcutPending();
+    } else {
+      showToast(res.error || '新增失敗', 'err');
+    }
+  } catch(e) { showToast('無法連線 Launcher', 'err'); }
+}
+
+function addStepsCustom() {
+  const count = parseInt(document.getElementById('steps-add-input').value);
+  if (!count || count < 1) { showToast('請輸入有效步數', 'err'); return; }
+  addSteps(count);
+}
+
+async function deleteSteps() {
+  const count = parseInt(document.getElementById('steps-del-input').value);
+  if (!count || count < 1) { showToast('請輸入有效步數', 'err'); return; }
+  if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
+  const url = state.deviceIdx === 'all'
+    ? `${META}/devices/steps/remove`
+    : `${META}/device/${state.deviceIdx}/steps/remove`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count }),
+    }).then(r => r.json());
+    if (res.ok) {
+      if (res.steps != null)
+        document.getElementById('steps-display').textContent = res.steps.toLocaleString();
+      showToast(`-${(res.removed ?? count).toLocaleString()} 步`, 'ok');
+    } else {
+      showToast(res.error || '刪除失敗', 'err');
+    }
+  } catch(e) { showToast('無法連線 Launcher', 'err'); }
+}
+
+async function resetSteps() {
+  if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
+  if (!confirm('確定要將步數清零嗎？')) return;
+  if (state.deviceIdx === 'all') {
+    // Reset all by removing a very large number
+    await fetch(`${META}/devices/steps/remove`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count: 9999999 }),
+    });
+    document.getElementById('steps-display').textContent = '0';
+    showToast('步數已清零（所有裝置）', 'ok');
+  } else {
+    try {
+      const res = await fetch(`${META}/device/${state.deviceIdx}/steps/reset`, {
+        method: 'POST',
+      }).then(r => r.json());
+      if (res.ok) {
+        document.getElementById('steps-display').textContent = '0';
+        showToast('步數已清零', 'ok');
+      }
+    } catch(e) { showToast('無法連線 Launcher', 'err'); }
+  }
+}
+
+function _updateWalkEta() {
+  const interval = parseInt(document.getElementById('walk-interval')?.value) || 5;
+  const perStep  = parseInt(document.getElementById('walk-steps-per')?.value) || 10;
+  const duration = parseInt(document.getElementById('walk-duration')?.value) || 300;
+  const fires    = Math.floor(duration / interval);
+  const total    = fires * perStep;
+  const el       = document.getElementById('walk-eta');
+  if (el) el.textContent = `預計共新增 ${total.toLocaleString()} 步（觸發 ${fires} 次）`;
+}
+
+function startWalking() {
+  if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
+  _walkInterval = Math.max(1, parseInt(document.getElementById('walk-interval').value) || 5);
+  _walkStepsPer = Math.max(1, parseInt(document.getElementById('walk-steps-per').value) || 10);
+  _walkDuration = Math.max(1, parseInt(document.getElementById('walk-duration').value) || 300);
+  _walkElapsed  = 0;
+
+  document.getElementById('btn-walk-play').disabled = true;
+  document.getElementById('btn-walk-stop').disabled = false;
+  document.getElementById('walk-progress-section').classList.remove('hidden');
+  _updateWalkProgressUI();
+  _walkTimer = setTimeout(_walkTick, 1000);
+  showToast('▶ 開始模擬行走', 'ok');
+}
+
+function _walkTick() {
+  _walkElapsed++;
+  // Add steps at each interval boundary
+  if (_walkElapsed % _walkInterval === 0) addSteps(_walkStepsPer);
+  _updateWalkProgressUI();
+  if (_walkElapsed >= _walkDuration) {
+    _finishWalking(true); return;
+  }
+  _walkTimer = setTimeout(_walkTick, 1000);
+}
+
+function _updateWalkProgressUI() {
+  const pct   = _walkDuration > 0 ? (_walkElapsed / _walkDuration * 100).toFixed(1) : 0;
+  const fires  = Math.floor(_walkElapsed / _walkInterval);
+  const added  = fires * _walkStepsPer;
+  document.getElementById('walk-progress-fill').style.width = `${pct}%`;
+  document.getElementById('walk-progress-text').textContent =
+    `${_walkElapsed} / ${_walkDuration} 秒`;
+  document.getElementById('walk-status-text').textContent =
+    `已新增 +${added.toLocaleString()} 步`;
+}
+
+function stopWalking() {
+  if (_walkTimer) { clearTimeout(_walkTimer); _walkTimer = null; }
+  _finishWalking(false);
+}
+
+function _finishWalking(completed) {
+  _walkTimer = null;
+  document.getElementById('btn-walk-play').disabled = false;
+  document.getElementById('btn-walk-stop').disabled = true;
+  document.getElementById('walk-progress-section').classList.add('hidden');
+  if (completed) showToast('✅ 模擬行走完成', 'ok');
+}
+
+// ── Shortcut integration UI ───────────────────────────────────────
+let _scGuideOpen = false;
+
+function toggleShortcutGuide() {
+  _scGuideOpen = !_scGuideOpen;
+  const guide = document.getElementById('sc-guide');
+  guide.style.display = _scGuideOpen ? 'flex' : 'none';
+  document.getElementById('sc-arrow').style.transform = _scGuideOpen ? 'rotate(90deg)' : '';
+  if (_scGuideOpen) fetchShortcutInfo();
+}
+
+async function fetchShortcutInfo() {
+  try {
+    const info = await fetch(`${META}/shortcut/info`).then(r => r.json());
+    if (!info.ok) return;
+
+    // Shortcut name
+    document.getElementById('sc-name-input').value = info.shortcut_name || '';
+
+    // Status dot + label
+    const dot = document.getElementById('sc-status-dot');
+    const label = document.getElementById('sc-toggle-label');
+
+    const pollUrl = `http://${info.local_ip}:${info.meta_port}/shortcut/sync?token=${info.token}&idx=0`;
+    document.getElementById('sc-poll-url').textContent = pollUrl;
+    document.getElementById('sc-poll-url')._url = pollUrl;
+
+    if (info.usb_ok) {
+      // At least one USB trigger tool is available
+      const tool = info.has_xcrun ? 'xcrun devicectl（iOS 17+）'
+                                  : 'ideviceopenurl（iOS ≤16）';
+      dot.style.background = 'var(--success)';
+      label.textContent = '🔗 iPhone 捷徑設定 ✅';
+      document.getElementById('sc-status-area').innerHTML =
+        `<span style="color:var(--success)">✅ <b>USB 觸發就緒</b></span>（${tool}）<br>` +
+        `按下步數按鈕時自動透過 USB 觸發 iPhone 捷徑，無需手動操作。<br>` +
+        `<span style="color:var(--faint)">備援輪詢 IP：${info.local_ip}:${info.meta_port}</span>`;
+      document.getElementById('sc-poll-section').classList.add('hidden');
+    } else {
+      // No USB tool — must use WiFi polling
+      dot.style.background = info.network_ok ? 'var(--warn)' : 'var(--err)';
+      label.textContent = '🔗 iPhone 捷徑設定 ⚠';
+      let statusHtml = `<span style="color:var(--warn)">⚠ 無 USB 觸發工具</span><br>`;
+      if (!info.has_xcrun) statusHtml += `• <b>xcrun</b>：需 Xcode 15+（iOS 17+）<br>`;
+      if (!info.has_idevurl) statusHtml +=
+        `• <b>ideviceopenurl</b>：需 libimobiledevice（iOS ≤16）<br>`+
+        `&nbsp;&nbsp;<span style="color:var(--faint);font-size:10px">brew install libimobiledevice</span><br>`;
+      if (info.network_ok) {
+        statusHtml += `<span style="color:var(--success)">✅ 網路輪詢已啟用</span>（${info.meta_host}:${info.meta_port}）`;
+        document.getElementById('sc-poll-section').classList.remove('hidden');
+      } else {
+        statusHtml +=
+          `<span style="color:var(--err)">❌ Launcher 僅綁定 127.0.0.1，iPhone 無法輪詢</span><br>` +
+          `改用以下指令啟動以啟用 WiFi 輪詢：<br>` +
+          `<span style="font-family:'SF Mono',Menlo,monospace;font-size:10px;color:var(--primary)">` +
+          `sudo python3 gps_launcher.py 8090 0.0.0.0</span>`;
+        document.getElementById('sc-poll-section').classList.remove('hidden');
+      }
+      document.getElementById('sc-status-area').innerHTML = statusHtml;
+    }
+
+    // Pending count
+    const pending = state.deviceIdx !== null && state.deviceIdx !== 'all'
+      ? (info.pending[state.deviceIdx] ?? 0)
+      : Object.values(info.pending || {}).reduce((s, v) => s + v, 0);
+    document.getElementById('sc-pending').textContent =
+      pending > 0 ? `${pending.toLocaleString()} 步` : '無';
+  } catch(e) {
+    document.getElementById('sc-status-area').textContent = '無法連線 Launcher';
+  }
+}
+
+async function saveShortcutName() {
+  const name = document.getElementById('sc-name-input').value.trim();
+  if (!name) { showToast('請輸入捷徑名稱', 'err'); return; }
+  try {
+    const res = await fetch(`${META}/shortcut/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    }).then(r => r.json());
+    if (res.ok) { showToast(`✅ 捷徑名稱：${name}`, 'ok'); fetchShortcutInfo(); }
+    else showToast(res.error || '更新失敗', 'err');
+  } catch(e) { showToast('無法連線 Launcher', 'err'); }
+}
+
+function copyPollUrl() {
+  const el = document.getElementById('sc-poll-url');
+  if (!el || !el._url) return;
+  navigator.clipboard.writeText(el._url).then(() => showToast('已複製輪詢 URL', 'ok'));
+}
+
+// After each addSteps call, refresh the pending counter if guide is open
+function _refreshShortcutPending() {
+  if (_scGuideOpen) fetchShortcutInfo();
+}
+
+// ── Cruise route save / load ──────────────────────────────────────
+const CRUISE_KEY = 'gps_cruise_routes_v1';
+let _cruiseRoutes = [];
+
+function loadCruiseRoutes() {
+  try { _cruiseRoutes = JSON.parse(localStorage.getItem(CRUISE_KEY) || '[]'); } catch(e) { _cruiseRoutes = []; }
+}
+function _saveCruiseRoutes() {
+  localStorage.setItem(CRUISE_KEY, JSON.stringify(_cruiseRoutes));
+}
+
+function openSaveCruiseModal() {
+  if (wpData.length < 2) { showToast('請至少加入 2 個航點才能儲存', 'err'); return; }
+  document.getElementById('csm-name').value = '';
+  document.getElementById('csm-info').textContent =
+    `${wpData.length} 個航點 · 速度 ${state.speed} km/h${state.loop ? ' · 循環' : ''}`;
+  document.getElementById('cruise-save-modal').classList.remove('hidden');
+  requestAnimationFrame(() => document.getElementById('csm-name').focus());
+}
+function closeSaveCruiseModal() {
+  document.getElementById('cruise-save-modal').classList.add('hidden');
+}
+function confirmSaveCruise() {
+  const name = document.getElementById('csm-name').value.trim();
+  if (!name) { showToast('名稱不能為空', 'err'); return; }
+  loadCruiseRoutes();   // Re-read in case another tab changed it
+  _cruiseRoutes.push({
+    id: Date.now(),
+    name,
+    waypoints: wpData.map(w => ({ lat: w.lat, lon: w.lon })),
+    speed: state.speed,
+    loop:  state.loop,
+    savedAt: new Date().toISOString(),
+  });
+  _saveCruiseRoutes();
+  closeSaveCruiseModal();
+  showToast(`💾 「${name}」已儲存`, 'ok');
+}
+
+function openLoadCruiseModal() {
+  loadCruiseRoutes();
+  renderCruiseRouteList();
+  document.getElementById('cruise-load-modal').classList.remove('hidden');
+}
+function closeLoadCruiseModal() {
+  document.getElementById('cruise-load-modal').classList.add('hidden');
+}
+function renderCruiseRouteList() {
+  const el = document.getElementById('cruise-route-list');
+  if (!_cruiseRoutes.length) {
+    el.innerHTML = '<div class="cr-empty">尚無儲存路線<br>請先設定航點後按「儲存路線」</div>';
+    return;
+  }
+  el.innerHTML = _cruiseRoutes.map(r => {
+    const d = new Date(r.savedAt);
+    const dateStr = `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} `
+                  + `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    const loopTag = r.loop ? ' · 循環' : '';
+    return `<div class="cr-item">
+      <div class="cr-info">
+        <div class="cr-name" title="${r.name}">${r.name}</div>
+        <div class="cr-meta">${r.waypoints.length} 個航點 · ${r.speed} km/h${loopTag} · ${dateStr}</div>
+      </div>
+      <div class="cr-btns">
+        <button class="btn btn-primary" style="padding:4px 10px;font-size:11px"
+          onclick="applyCruiseRoute(${r.id})">讀取</button>
+        <button class="btn btn-danger" style="padding:4px 8px;font-size:11px"
+          onclick="deleteCruiseRoute(${r.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function applyCruiseRoute(id) {
+  const r = _cruiseRoutes.find(r => r.id === id);
+  if (!r) return;
+  if (state.playing) stopCruise();
+  clearWaypoints();
+  r.waypoints.forEach(w => addWaypoint(w.lat, w.lon));
+  // Restore speed
+  state.speed = r.speed;
+  document.getElementById('speed-input').value = r.speed;
+  updateRouteInfo();
+  // Restore loop
+  if (state.loop !== r.loop) toggleLoop();
+  // Fit map
+  if (r.waypoints.length >= 2) {
+    map.fitBounds(L.latLngBounds(r.waypoints.map(w => [w.lat, w.lon])), { padding: [40, 40] });
+  }
+  closeLoadCruiseModal();
+  showToast(`📂 「${r.name}」已讀取`, 'ok');
+}
+function deleteCruiseRoute(id) {
+  const r = _cruiseRoutes.find(r => r.id === id);
+  if (!r || !confirm(`確定刪除路線「${r.name}」？`)) return;
+  _cruiseRoutes = _cruiseRoutes.filter(r => r.id !== id);
+  _saveCruiseRoutes();
+  renderCruiseRouteList();
+  showToast('已刪除', 'ok');
 }
 
 // ── UI Utilities ────────────────────────────────────────────────────
@@ -935,10 +1845,10 @@ function scheduleTzUpdate(lat, lon) {
   }, 800);
 }
 
-// Copy current coordinates to clipboard (format: lat,lon)
+// Copy current coordinates to clipboard (format: lat, lon  — comma + space)
 function copyCoords() {
   if (state.lat == null || state.lon == null) { showToast('尚無座標', 'err'); return; }
-  const text = `${state.lat.toFixed(6)},${state.lon.toFixed(6)}`;
+  const text = `${state.lat.toFixed(6)}, ${state.lon.toFixed(6)}`;
   navigator.clipboard.writeText(text)
     .then(() => showToast(`已複製 ${text}`, 'ok'))
     .catch(() => showToast('複製失敗', 'err'));
@@ -954,7 +1864,7 @@ async function searchPlace() {
   const el = document.getElementById('search-results');
   el.innerHTML = '<div class="sr-loading">搜尋中...</div>';
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=7&addressdetails=1&accept-language=zh-TW,zh,en`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=7&addressdetails=1&accept-language=zh-TW,en`;
     const res = await fetch(url, { headers: { 'User-Agent': 'iPhoneGPSController/1.0' } });
     const data = await res.json();
     renderSearchResults(data);
@@ -974,7 +1884,7 @@ function renderSearchResults(data) {
   el.innerHTML = data.map((r, i) => {
     const parts  = r.display_name.split(',').map(s => s.trim());
     const name   = parts.slice(0, 2).join(', ');
-    const country = (r.address && r.address.country) ? r.address.country : (parts[parts.length - 1] || '');
+    const country = _normalizeCountry((r.address && r.address.country) ? r.address.country : (parts[parts.length - 1] || ''));
     return `<div class="sr-item" data-idx="${i}">
       <div class="sr-name">${name}</div>
       <div class="sr-addr">
@@ -1021,7 +1931,7 @@ function jumpToPlace(r) {
   const coordStr = `${la.toFixed(5)}, ${lo.toFixed(5)}`;
   const cruiseLink = state.mode === 'cruise'
     ? ` &nbsp;<a href="#" id="sr-wp-link" style="color:#e8af34">✚ 加入航點</a>` : '';
-  const country = (r.address && r.address.country) ? r.address.country : '';
+  const country = _normalizeCountry((r.address && r.address.country) ? r.address.country : '');
 
   _searchMarker.bindPopup(
     `<div style="font-size:12px;max-width:210px">
@@ -1052,12 +1962,149 @@ function clearSearchResults() {
 }
 
 
+// ── Country name normalizer ───────────────────────────────────────
+// Nominatim sometimes concatenates Traditional + Simplified Chinese when
+// both name:zh-TW and name:zh exist in OSM (e.g. "台灣台湾", "中國中国").
+// This strips any Simplified duplicate and cleans up common formatting.
+function _normalizeCountry(raw) {
+  if (!raw) return '';
+  let s = raw.trim();
+  // Remove bracketed alternatives: "台灣（臺灣）" or "台灣(Taiwan)"
+  s = s.replace(/\s*[（(][^）)]*[）)]\s*/g, '').trim();
+  // Split on slash or pipe, keep first part only
+  s = s.split(/\s*[\/|]\s*/)[0].trim();
+
+  // Detect Traditional+Simplified concatenation.
+  // These pairs differ between scripts; if a string contains BOTH sides,
+  // it's a mix and we keep only the Traditional portion.
+  const pairs = [
+    ['國','国'], ['灣','湾'], ['華','华'], ['亞','亚'],
+    ['東','东'], ['歐','欧'], ['際','际'], ['來','来'],
+    ['術','术'], ['體','体'], ['學','学'], ['樂','乐'],
+    ['龍','龙'], ['頻','频'], ['選','选'], ['運','运'],
+  ];
+  const hasTrad = pairs.some(([t])    => s.includes(t));
+  const hasSimp = pairs.some(([,sim]) => s.includes(sim));
+
+  if (hasTrad && hasSimp) {
+    if (s.length >= 4 && s.length % 2 === 0) {
+      // Even-length: the two halves are the same country in each script
+      s = s.slice(0, s.length / 2);
+    } else {
+      // Odd-length fallback: cut at the earliest Simplified character
+      let cut = s.length;
+      for (const [, sim] of pairs) {
+        const p = s.indexOf(sim);
+        if (p > 0) cut = Math.min(cut, p);
+      }
+      s = s.slice(0, cut).trim();
+    }
+  }
+  return s;
+}
+
 // ── Favorites management (persisted in localStorage) ──────────────
 const FAV_KEY = 'gps_favorites_v1';
 let _favs = [];
+let _favTimeInterval = null;
+
+let _editFavId    = null;
+let _selectedFavId = null;
+
+function moveFavSelected(dir) {
+  if (_selectedFavId == null) return;
+  moveFav(_selectedFavId, dir);
+  // Scroll selected item into view after re-render
+  requestAnimationFrame(() => {
+    const el = document.querySelector(`.fav-item[data-id="${_selectedFavId}"]`);
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+}
+
+function _updateFavMoveButtons() {
+  const idx     = _favs.findIndex(f => f.id === _selectedFavId);
+  const upBtn   = document.getElementById('btn-fav-up');
+  const downBtn = document.getElementById('btn-fav-down');
+  if (!upBtn || !downBtn) return;
+  upBtn.disabled   = idx <= 0;
+  downBtn.disabled = idx < 0 || idx >= _favs.length - 1;
+}
+
+function modifyFavorite(id) {
+  const f = _favs.find(f => f.id === id);
+  if (!f) return;
+  _editFavId = id;
+  document.getElementById('fav-modal-title').textContent = '✎ 修改地點';
+  document.getElementById('fm-name').value = f.name;
+  document.getElementById('fm-lat').value  = f.lat.toFixed(6);
+  document.getElementById('fm-lon').value  = f.lon.toFixed(6);
+  document.getElementById('fav-modal').classList.remove('hidden');
+  requestAnimationFrame(() => document.getElementById('fm-name').focus());
+}
+
+function favModalConfirm() {
+  const name = document.getElementById('fm-name').value.trim();
+  const lat  = parseFloat(document.getElementById('fm-lat').value);
+  const lon  = parseFloat(document.getElementById('fm-lon').value);
+  if (!name) { showToast('名稱不能為空', 'err'); return; }
+  if (isNaN(lat) || isNaN(lon)) { showToast('座標格式錯誤', 'err'); return; }
+
+  if (_editFavId === 'new') {
+    addFavorite(lat, lon, name, '');
+    favModalCancel();
+    showToast(`⭐ "${name}" 已加入最愛`, 'ok');
+    _fetchAndFillCountry(lat, lon, name);
+    return;
+  }
+
+  const f = _favs.find(f => f.id === _editFavId);
+  if (!f) { favModalCancel(); return; }
+  f.name = name; f.lat = lat; f.lon = lon; f.country = '';
+  saveFavorites();
+  renderFavorites();
+  favModalCancel();
+  showToast('✅ 已更新', 'ok');
+  _fetchAndFillCountry(lat, lon, name); // refresh country after coord change
+}
+
+function favModalCancel() {
+  _editFavId = null;
+  document.getElementById('fav-modal').classList.add('hidden');
+}
+
+function moveFav(id, dir) {
+  const i = _favs.findIndex(f => f.id === id);
+  if (i < 0) return;
+  const j = dir === 'up' ? i - 1 : i + 1;
+  if (j < 0 || j >= _favs.length) return;
+  [_favs[i], _favs[j]] = [_favs[j], _favs[i]];
+  saveFavorites();
+  renderFavorites();
+}
+
+function updateFavTimes() {
+  _favs.forEach(f => {
+    const key = `${f.lat.toFixed(1)},${f.lon.toFixed(1)}`;
+    const cached = _tzCache[key];
+    if (!cached || !cached.tz) return;
+    const updated = _buildTzResult(key, cached.tz);
+    const el = document.getElementById(`ft-${f.id}`);
+    if (!el) return;
+    const cd = updated.crossDay ? ' <span class="sr-cd">跨日</span>' : '';
+    el.innerHTML = `${updated.localTime}${cd}`;
+  });
+}
 
 function loadFavorites() {
   try { _favs = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch(e) { _favs = []; }
+  // One-time migration: normalize any country names stored before this fix
+  let dirty = false;
+  _favs.forEach(f => {
+    if (!f.country) return;
+    const clean = _normalizeCountry(f.country);
+    if (clean !== f.country) { f.country = clean; dirty = true; }
+  });
+  if (dirty) localStorage.setItem(FAV_KEY, JSON.stringify(_favs));
 }
 function saveFavorites() {
   localStorage.setItem(FAV_KEY, JSON.stringify(_favs));
@@ -1075,16 +2122,48 @@ function addFavorite(lat, lon, name, country) {
   if (state.mode === 'fav') renderFavorites();
 }
 
-function addCurrentToFav() {
+async function addCurrentToFav() {
   if (state.lat == null) { showToast('尚無座標', 'err'); return; }
   const name = prompt('請輸入地標名稱', `地標 ${_favs.length + 1}`);
-  if (name === null) return; // Cancel
-  addFavorite(state.lat, state.lon, name, '');
+  if (name === null) return;
+  addFavorite(state.lat, state.lon, name, ''); // add immediately, country filled async
   showToast(`⭐ "${name}" 已加入最愛`, 'ok');
+  _fetchAndFillCountry(state.lat, state.lon, name.trim());
+}
+
+function addManualFav() {
+  _editFavId = 'new';
+  document.getElementById('fav-modal-title').textContent = '✚ 手動加入地點';
+  document.getElementById('fm-name').value = '';
+  document.getElementById('fm-lat').value  = state.lat != null ? state.lat.toFixed(6) : '';
+  document.getElementById('fm-lon').value  = state.lon != null ? state.lon.toFixed(6) : '';
+  document.getElementById('fav-modal').classList.remove('hidden');
+  requestAnimationFrame(() => document.getElementById('fm-name').focus());
+}
+
+async function _fetchAndFillCountry(lat, lon, matchName) {
+  try {
+    const res  = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh-TW`,
+      { headers: { 'User-Agent': 'iPhoneGPSController/1.0' }, signal: AbortSignal.timeout(8000) }
+    );
+    const data    = await res.json();
+    const country = _normalizeCountry((data.address && data.address.country) ? data.address.country : '');
+    if (!country) return;
+    const f = _favs.find(f => f.name === matchName && Math.abs(f.lat-lat)<1e-5 && Math.abs(f.lon-lon)<1e-5);
+    if (!f || f.country) return;
+    f.country = country;
+    saveFavorites();
+    if (state.mode === 'fav') {
+      const el = document.querySelector(`.fav-item[data-id="${f.id}"] .fav-name`);
+      if (el) el.textContent = f.name + `（${country}）`;
+    }
+  } catch(e) {}
 }
 
 function deleteFavorite(id) {
   _favs = _favs.filter(f => f.id !== id);
+  if (_selectedFavId === id) _selectedFavId = null;
   saveFavorites();
   renderFavorites();
 }
@@ -1102,7 +2181,7 @@ function renameFavorite(id) {
 function clearAllFavs() {
   if (!_favs.length) return;
   if (!confirm(`確定清除全部 ${_favs.length} 個最愛地點？`)) return;
-  _favs = [];
+  _favs = []; _selectedFavId = null;
   saveFavorites();
   renderFavorites();
 }
@@ -1114,42 +2193,59 @@ function renderFavorites() {
     el.innerHTML = '<div class="fav-empty">尚無儲存地點<br>點擊 ⭐ 或從搜尋結果加入</div>';
     return;
   }
-  el.innerHTML = _favs.map(f => `
-    <div class="fav-item" data-id="${f.id}">
-      <div class="fav-star">⭐</div>
-      <div class="fav-body">
-        <div class="fav-name">${f.name}</div>
-        <div class="fav-coords">${f.lat.toFixed(5)}, ${f.lon.toFixed(5)}</div>
-        <div class="fav-meta">
-          ${f.country ? `<span class="fav-country">${f.country}</span>` : ''}
-          <span class="fav-time" id="ft-${f.id}">⏳</span>
+  el.innerHTML = _favs.map(f => {
+    const displayCountry = _normalizeCountry(f.country || '');
+    const nameStr = f.name + (displayCountry ? `（${displayCountry}）` : '');
+    const isSel   = f.id === _selectedFavId;
+    return `<div class="fav-item${isSel ? ' fav-selected' : ''}" data-id="${f.id}">
+      <div class="fav-row1">
+        <span class="fav-star">⭐</span>
+        <span class="fav-name" title="${nameStr}">${nameStr}</span>
+      </div>
+      <div class="fav-row2">
+        <span class="fav-time" id="ft-${f.id}">⏳</span>
+        <div class="fav-btns">
+          <button class="fav-btn" data-action="go"     title="移動地圖">🗺</button>
+          <button class="fav-btn" data-action="gps"    title="設定GPS">📍</button>
+          <button class="fav-btn fav-btn-edit" data-action="modify" title="修改名稱與座標">✎</button>
+          <button class="fav-btn fav-del" data-action="del" title="刪除">🗑</button>
         </div>
       </div>
-      <div class="fav-btns">
-        <button class="fav-btn fav-go"   data-action="go"     title="跳轉">🗺</button>
-        <button class="fav-btn fav-gps"  data-action="gps"    title="設定GPS">📍</button>
-        <button class="fav-btn fav-edit" data-action="rename" title="重新命名">✏</button>
-        <button class="fav-btn fav-del"  data-action="del"    title="刪除">🗑</button>
-      </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
-  // Event delegation for favorite item actions
   el.onclick = e => {
     const btn  = e.target.closest('[data-action]');
     const item = e.target.closest('.fav-item');
     if (!item) return;
-    const id  = parseInt(item.dataset.id);
-    const f   = _favs.find(f => f.id === id);
+    const id = parseInt(item.dataset.id);
+    const f  = _favs.find(f => f.id === id);
     if (!f) return;
-    if (!btn) { map.setView([f.lat, f.lon], 16); return; } // Navigate to location by name click
+
+    if (!btn) {
+      // Click on item body: select it (toggle if already selected)
+      _selectedFavId = (_selectedFavId === id) ? null : id;
+      document.querySelectorAll('.fav-item').forEach(el =>
+        el.classList.toggle('fav-selected', parseInt(el.dataset.id) === _selectedFavId));
+      _updateFavMoveButtons();
+      return;
+    }
     const act = btn.dataset.action;
-    if (act === 'go')     map.setView([f.lat, f.lon], 16);
+    if (act === 'go') {
+      _selectedFavId = id;
+      document.querySelectorAll('.fav-item').forEach(el =>
+        el.classList.toggle('fav-selected', parseInt(el.dataset.id) === id));
+      _updateFavMoveButtons();
+      map.setView([f.lat, f.lon], 16);
+    }
     if (act === 'gps')    { gotoCoord(f.lat, f.lon); showToast(`📍 ${f.name}`, 'ok'); }
-    if (act === 'rename') renameFavorite(id);
+    if (act === 'modify') modifyFavorite(id);
     if (act === 'del')    deleteFavorite(id);
   };
 
-  // Async timezone lookup for each favorite
+  _updateFavMoveButtons();
+
+  // Async tz lookup (uses cache after first hit); update DOM on resolve
   _favs.forEach(f => {
     lookupTz(f.lat, f.lon).then(info => {
       const el2 = document.getElementById(`ft-${f.id}`);
@@ -1158,9 +2254,32 @@ function renderFavorites() {
       el2.innerHTML = `${info.localTime}${cd}`;
     });
   });
+
+  // Lazy-fill country for items that don't have it yet (e.g. added via addCurrentToFav)
+  _favs.filter(f => !f.country).forEach(f => {
+    _fetchAndFillCountry(f.lat, f.lon, f.name);
+  });
+
+  // Live time refresh every 30 s (only updates from cache, no extra network calls)
+  if (_favTimeInterval) clearInterval(_favTimeInterval);
+  _favTimeInterval = setInterval(updateFavTimes, 30000);
 }
 
 document.addEventListener('keydown', e => {
+  // Modal keyboard shortcuts
+  if (!document.getElementById('fav-modal').classList.contains('hidden')) {
+    if (e.key === 'Escape') favModalCancel();
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') favModalConfirm();
+    return;
+  }
+  if (!document.getElementById('cruise-save-modal').classList.contains('hidden')) {
+    if (e.key === 'Escape') closeSaveCruiseModal();
+    return;
+  }
+  if (!document.getElementById('cruise-load-modal').classList.contains('hidden')) {
+    if (e.key === 'Escape') closeLoadCruiseModal();
+    return;
+  }
   if (e.target.tagName === 'INPUT') return;
   const k = { ArrowUp:'N',ArrowDown:'S',ArrowLeft:'W',ArrowRight:'E',
     w:'N',s:'S',a:'W',d:'E',q:'NW',e:'NE',z:'SW',c:'SE' }[e.key];
