@@ -333,7 +333,8 @@ input:focus{border-color:var(--primary)}
   <!-- Mode tabs -->
   <div class="mode-tabs">
     <div class="mode-tab active" id="tab-normal" onclick="setMode('normal')">一般</div>
-    <div class="mode-tab" id="tab-steps"  onclick="setMode('steps')">👟 步數</div>
+    <!-- 步數功能尚未通過驗證，暫時隱藏入口（程式碼保留，日後驗證後移除 display:none 即可開啟） -->
+    <div class="mode-tab" id="tab-steps"  onclick="setMode('steps')" style="display:none">👟 步數</div>
     <div class="mode-tab" id="tab-cruise" onclick="setMode('cruise')">巡航</div>
     <div class="mode-tab" id="tab-fav"    onclick="setMode('fav')">⭐ 最愛</div>
   </div>

@@ -16,7 +16,6 @@ A tool for real-time iPhone GPS location simulation via USB from a Mac.
 This release is a major upgrade over the first version:
 
 - **Multi-device sync** — drive several iPhones at once. A 🔗 *Sync All Devices* card broadcasts every set / clear / cruise step to all connected phones simultaneously.
-- **Step counter (HealthKit)** — add simulated steps and a walk-simulation mode; steps are written to the iPhone **Health** app via an iOS Shortcut (see [Step Counter](#-step-counter)).
 - **Cruise upgrades** — pause / resume (keeps progress even if you move elsewhere meanwhile), save / load named routes, and batch-paste many coordinates at once.
 - **Favorites overhaul** — manual add, automatic country name (Traditional Chinese), live local time, drag-free reordering with a pinned toolbar, and edit name + coordinates.
 - **Much more robust backend** — unplug / re-plug now reconnects automatically (no launcher restart needed), USB-only device filtering, full process-group tunnel cleanup, self-healing reconnect, and file logging.
@@ -31,11 +30,10 @@ This release is a major upgrade over the first version:
 4. [Quick Start](#quick-start)
 5. [Backend — gps_launcher.py](#backend--gps_launcherpy)
 6. [Frontend — gps_map.html Usage](#frontend--gps_maphtml-usage)
-7. [Step Counter](#-step-counter)
-8. [HTTP API Reference](#http-api-reference)
-9. [Keyboard Shortcuts](#keyboard-shortcuts)
-10. [Troubleshooting](#troubleshooting)
-11. [Third-Party Licenses](#third-party-licenses)
+7. [HTTP API Reference](#http-api-reference)
+8. [Keyboard Shortcuts](#keyboard-shortcuts)
+9. [Troubleshooting](#troubleshooting)
+10. [Third-Party Licenses](#third-party-licenses)
 
 ---
 
@@ -50,7 +48,6 @@ This release is a major upgrade over the first version:
 | 🔍 Place Search | Search global locations via Nominatim (OpenStreetMap) |
 | ⭐ Favorites | Save locations with country name + live local time, reorder, and edit |
 | 🕐 Local Time | Display local time + cross-day indicator at target coordinates (Open-Meteo API) |
-| 👟 Step Counter | Add steps / simulate walking, written to iPhone Health via an iOS Shortcut |
 | 🔗 Multi-Device Sync | Broadcast one action to all connected iPhones at once |
 | 📱 Multi-Device | Manage multiple iPhones simultaneously with seamless switching |
 | 🔄 Auto-Reconnect | Self-healing tunnel/GPS reconnect; clean unplug → re-plug handling |
@@ -67,7 +64,7 @@ This release is a major upgrade over the first version:
 | **iPhone iOS** | iOS 16 or higher (iOS 17+ requires RSD tunnel + Developer Mode) |
 | **Connection** | USB (Lightning or USB-C) |
 | **Browser** | Chrome / Firefox / Safari (Clipboard API support required) |
-| **Network** | Backend is local-only by default; Search / Timezone require internet. Step writing needs an extra tool — see [Step Counter](#-step-counter) |
+| **Network** | Backend is local-only by default; Search / Timezone require internet |
 
 ---
 
@@ -151,16 +148,19 @@ open gps_map.html
 sudo python3 gps_launcher.py [PORT] [HOST]
 ```
 
+Both arguments are **optional** — run `sudo python3 gps_launcher.py` with nothing after it and the defaults below are used. Pass them only when you want to override.
+
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `PORT` | HTTP API listening port | `8090` |
-| `HOST` | Bind address. Use `0.0.0.0` to allow the iPhone to reach the API over Wi-Fi (needed for the step-counter polling fallback) | `127.0.0.1` |
+| `HOST` | Bind address. Use `0.0.0.0` to expose the API on your LAN; the default keeps it local-only | `127.0.0.1` |
 
 Examples:
 
 ```bash
+sudo python3 gps_launcher.py                   # use all defaults (8090, local-only)
 sudo python3 gps_launcher.py 9000              # custom port
-sudo python3 gps_launcher.py 8090 0.0.0.0      # expose to LAN (Wi-Fi step polling)
+sudo python3 gps_launcher.py 8090 0.0.0.0      # expose API on the LAN
 ```
 
 ### Internal Constants (editable in source)
@@ -173,11 +173,10 @@ sudo python3 gps_launcher.py 8090 0.0.0.0      # expose to LAN (Wi-Fi step polli
 | `TUNNEL_RETRY_SEC` | Wait between retry attempts (seconds) | `5` |
 | `DEVICE_BOOT_WAIT` | Seconds to wait after device detection before tunneling | `8` |
 | `MISS_THRESHOLD` | Consecutive missed scans before a device is treated as removed (debounces transient scan failures) | `2` |
-| `SHORTCUT_NAME` | Name of the iOS Shortcut used to write steps to Health | `GPS步數增加` |
 
 ### Logging
 
-Every run writes to `gps_launcher.log` (same name as the script, `.log` extension), alongside live console output. The log file is **not** meant to be committed — it can contain device names, UDIDs, and the session token.
+Every run writes to `gps_launcher.log` (same name as the script, `.log` extension), alongside live console output. The log file is **not** meant to be committed — it can contain device names and UDIDs.
 
 ### Internal Architecture
 
@@ -245,7 +244,7 @@ The frontend polls the backend API (default `http://localhost:8090`) every **1.5
 
 ### 🔗 Sync All Devices
 
-When two or more iPhones are connected, a **🔗 Sync All Devices** card appears at the top of the device list. Select it to broadcast every action — set position, clear, cruise steps, and step counter — to **all connected devices at once**. The card shows how many devices are connected (e.g. `2 / 2`).
+When two or more iPhones are connected, a **🔗 Sync All Devices** card appears at the top of the device list. Select it to broadcast every action — set position, clear, and cruise steps — to **all connected devices at once**. The card shows how many devices are connected (e.g. `2 / 2`).
 
 Select an individual device card instead to control just that one.
 
@@ -312,34 +311,6 @@ The country name (in Traditional Chinese) is filled in automatically via reverse
 
 ---
 
-## 👟 Step Counter
-
-The **Steps** tab can add simulated steps and run a walk-simulation (add N steps every few seconds for a total duration). Steps can also be broadcast to all devices in Sync mode.
-
-### How steps reach the iPhone Health app
-
-GPS simulation uses the developer (DVT) channel and needs no app on the phone. **HealthKit step data is different** — it must be written by an app/Shortcut with Health permission. This tool drives an **iOS Shortcut** that records steps into Health.
-
-**One-time setup on the iPhone:**
-1. Open the **Shortcuts** app → create a new shortcut.
-2. Name it exactly to match `SHORTCUT_NAME` (default `GPS步數增加`).
-3. Add action **Log Health Sample** → Type: **Steps** → Amount: **Shortcut Input**.
-4. In the shortcut settings, enable **Run without confirmation**.
-
-**How the launcher triggers it (auto-detected, in order):**
-
-| Method | iOS | Requirement |
-|--------|-----|-------------|
-| `xcrun devicectl` | iOS 17+ | Full **Xcode 15+** (not just Command Line Tools) |
-| `ideviceopenurl` | iOS 12–16 | `brew install libimobiledevice` |
-| Wi-Fi polling (fallback) | any | Start with `HOST=0.0.0.0`; an extra polling Shortcut reads pending steps from the launcher |
-
-The Steps tab includes a **🔗 iPhone Shortcut setup** panel that shows which method is active and the polling URL for the fallback.
-
-> If none of the above is available, steps are added to a pending queue but won't appear in Health until a trigger method is set up.
-
----
-
 ## HTTP API Reference
 
 The backend listens on `http://{HOST}:{PORT}` (default `127.0.0.1:8090`) with CORS fully open.
@@ -352,10 +323,6 @@ The backend listens on `http://{HOST}:{PORT}` (default `127.0.0.1:8090`) with CO
 | `POST /device/{idx}/set` | Set coordinates — body `{ "lat": .., "lon": .. }` |
 | `POST /device/{idx}/clear` | Clear simulation, restore real GPS |
 | `GET /device/{idx}/status` | Detailed status of one device |
-| `GET /device/{idx}/steps` | Current step count |
-| `POST /device/{idx}/steps/add` | Add steps — body `{ "count": N }` |
-| `POST /device/{idx}/steps/remove` | Remove steps — body `{ "count": N }` |
-| `POST /device/{idx}/steps/reset` | Reset step count to 0 |
 
 ### Broadcast (all connected devices)
 
@@ -363,17 +330,6 @@ The backend listens on `http://{HOST}:{PORT}` (default `127.0.0.1:8090`) with CO
 |---------------|-------------|
 | `POST /devices/set` | Set the same coordinates on every connected device |
 | `POST /devices/clear` | Clear simulation on every connected device |
-| `POST /devices/steps/add` | Add steps on every device |
-| `POST /devices/steps/remove` | Remove steps on every device |
-
-### Shortcut integration
-
-| Method & Path | Description |
-|---------------|-------------|
-| `GET /shortcut/info` | Integration status (active method, token, local IP, pending steps) |
-| `POST /shortcut/config` | Update the Shortcut name — body `{ "name": ".." }` |
-| `GET /shortcut/sync` | Polling endpoint for the iPhone Shortcut (token-authenticated) |
-| `POST /shortcut/ack` | Acknowledge a Health write (token-authenticated) |
 
 **Example — `GET /devices` response:**
 ```json
@@ -388,7 +344,6 @@ The backend listens on `http://{HOST}:{PORT}` (default `127.0.0.1:8090`) with CO
     "last_lat": 25.03300,
     "last_lon": 121.56540,
     "set_count": 42,
-    "steps": 1000,
     "uptime_sec": 180,
     "tunnel_ok": true,
     "error": null
@@ -443,11 +398,7 @@ A broadcast response includes the affected device count, e.g. `{ "ok": true, "co
 **Q5: GPS disappears after stopping a cruise?**
 - By design: stopping a cruise **keeps the last position**. Use **Clear GPS** in Normal mode to restore real GPS.
 
-**Q6: Steps added but nothing shows in the Health app?**
-- Steps require an iOS Shortcut trigger — see [Step Counter](#-step-counter)
-- Check the **🔗 iPhone Shortcut setup** panel in the Steps tab to see which method is active
-
-**Q7: Phone won't reconnect after unplug/re-plug (older behavior)?**
+**Q6: Phone won't reconnect after unplug/re-plug (older behavior)?**
 - This is fixed in the current version — re-plugging reconnects automatically without restarting the launcher.
 
 ---
