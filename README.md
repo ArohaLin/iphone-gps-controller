@@ -1,6 +1,6 @@
 # 📍 iPhone GPS Controller
 
-A tool for real-time iPhone GPS location simulation via USB from a Mac.  
+A tool for real-time iPhone GPS location simulation from a Mac, over USB or a paired Wi-Fi connection.  
 `gps_launcher.py` handles device discovery and exposes an HTTP API;  
 `gps_map.html` provides an interactive Leaflet map interface for controlling GPS.
 
@@ -18,7 +18,11 @@ This release is a major upgrade over the first version:
 - **Multi-device sync** — drive several iPhones at once. A 🔗 *Sync All Devices* card broadcasts every set / clear / cruise step to all connected phones simultaneously.
 - **Cruise upgrades** — pause / resume (keeps progress even if you move elsewhere meanwhile), save / load named routes, and batch-paste many coordinates at once.
 - **Favorites overhaul** — manual add, automatic country name (Traditional Chinese), live local time, drag-free reordering with a pinned toolbar, and edit name + coordinates.
-- **Much more robust backend** — unplug / re-plug now reconnects automatically (no launcher restart needed), USB-only device filtering, full process-group tunnel cleanup, self-healing reconnect, and file logging.
+- **Much more robust backend** — unplug / re-plug now reconnects automatically (no launcher restart needed), selectable USB / Wi-Fi / Auto connection mode, full process-group tunnel cleanup, self-healing reconnect, and file logging.
+- **Persistent data** — favorites, cruise routes, and base map settings are now saved to `user_data.json` next to the launcher, so they survive page refreshes, closing the browser, and reboots. Data that older versions kept in the browser is migrated automatically the first time you connect to the new version.
+- **Auto-rejoin for disconnected phones** — if one phone drops out during a multi-device cruise, it automatically rejoins the cruise when it reconnects and jumps straight to the current cruise position, with no need to stop and restart (and no extra background polling).
+- **Quick cruise route switching** — the cruise panel has a new "⭐ My cruise routes" dropdown; saved routes can be renamed, overwritten with the current waypoints, or deleted.
+- **Optional Google Maps** — switch the base map between OpenStreetMap / Google Maps / Google Satellite (requires your own Google Maps API key). Google is only contacted when you pick a Google base map.
 
 ---
 
@@ -62,7 +66,7 @@ This release is a major upgrade over the first version:
 | **OS** | macOS (tunnel creation requires `sudo`) |
 | **Python** | 3.8 or higher |
 | **iPhone iOS** | iOS 16 or higher (iOS 17+ requires RSD tunnel + Developer Mode) |
-| **Connection** | USB (Lightning or USB-C) |
+| **Connection** | USB (Lightning or USB-C), or Wi-Fi with a paired iPhone on the same local network as the Mac |
 | **Browser** | Chrome / Firefox / Safari (Clipboard API support required) |
 | **Network** | Backend is local-only by default; Search / Timezone require internet |
 
@@ -89,13 +93,23 @@ pip install aiohttp pymobiledevice3
 2. Tap **Trust** when iPhone prompts "Trust This Computer?"
 3. Ensure `usbmuxd` is running on Mac (usually starts automatically)
 
+**First-time Wi-Fi setup:** first complete the trust and pairing steps above over USB, and enable Developer Mode on the iPhone under Settings → Privacy & Security → Developer Mode (restart and confirm when prompted). Select the phone in Finder, check "Show this iPhone when on Wi-Fi" on the General tab, and click Apply. Put the Mac and iPhone on the same local network, then choose Wi-Fi or Auto mode on the map. Once the device card shows Wi-Fi and Connected, confirm it still works after unplugging the cable.
+
+The launcher starts in **USB** mode; **Wi-Fi** uses the wireless connection, and **Auto** lets the backend pick whichever connection is available. Each device card shows the connection type that phone is actually using. Switching modes aborts incompatible connections and cruises; reconnecting does not automatically replay the previous position or cruise, so start them again manually. If you get a message that connection modes aren't supported, restart with the new version of the launcher.
+
+If you want to test a tunnel manually, stop the launcher's automatic system first; when you're done, close the manual tunnel before starting the launcher again — never run both at the same time. Connection stability during sleep and while the screen is locked has not yet been tested on real devices, and connection is not guaranteed once the phone disappears from Finder.
+
 ### 3. File Structure
 
 ```
 iphone-gps-controller/
 ├── gps_launcher.py   ← Backend Python service
-└── gps_map.html      ← Frontend map interface
+├── gps_map.html      ← Frontend map interface
+├── user_data.json    ← Your favorites / cruise routes / base map settings (created automatically on first run; listed in .gitignore)
+└── user_data.json.prev ← Automatic backup of the previous version (one generation kept before each save)
 ```
+
+> `user_data.json` contains your private locations and Google key, so it is excluded from git — do not upload it manually. When the launcher runs under `sudo`, the file's ownership is automatically changed back to your own user account with permissions 600 (only you can read and write it).
 
 ---
 
@@ -125,12 +139,13 @@ On successful startup, the terminal will show:
 
 ### Step 2: Open the Frontend Map
 
-Open `gps_map.html` directly in your browser:
+**Recommended:** once the launcher is running, open **http://localhost:8090/** in your browser (the launcher serves the map page directly).
 
 ```bash
-open gps_map.html
-# or drag-and-drop onto any browser window
+open http://localhost:8090/
 ```
+
+You can also open the file directly as before (`open gps_map.html` or drag-and-drop it onto a browser window) — it works the same. But opening it via the URL is more reliable, and it lets you restrict your Google key to "only http://localhost:8090/*", which is safer.
 
 ### Step 3: Set a GPS Location
 
@@ -167,7 +182,7 @@ sudo python3 gps_launcher.py 8090 0.0.0.0      # expose API on the LAN
 
 | Constant | Description | Default |
 |----------|-------------|---------|
-| `SCAN_SEC` | USB device scan interval (seconds) | `6` |
+| `SCAN_SEC` | Device scan interval (seconds) | `6` |
 | `TUNNEL_TIMEOUT` | Single tunnel establishment timeout (seconds) | `40` |
 | `TUNNEL_RETRIES` | Number of tunnel retry attempts on failure | `3` |
 | `TUNNEL_RETRY_SEC` | Wait between retry attempts (seconds) | `5` |
@@ -182,7 +197,7 @@ Every run writes to `gps_launcher.log` (same name as the script, `.log` extensio
 
 ```
 Startup
- └─ device_scanner  (every 6 seconds, USB-only)
+ └─ device_scanner  (every 6 seconds, per connection mode)
       ├─ New device   → setup_device (wait 8s → start tunnel → gps_worker)
       └─ Device gone  → teardown_device (cancel tasks → kill tunnel group → clear state)
                         (only after MISS_THRESHOLD consecutive misses)
@@ -201,7 +216,7 @@ The launcher uses **three fallback methods** for USB device scanning:
 2. CLI subprocess (`python -m pymobiledevice3 usbmux list`)
 3. Regex UDID extraction from CLI output (last resort)
 
-Only **USB-connected** devices are used; Wi-Fi-paired devices are ignored so the launcher never tries to tunnel a phone that isn't physically plugged in.
+The default **USB** mode only uses USB devices; switch to **Wi-Fi** or **Auto** to include paired wireless devices. Wi-Fi is the connection between the Mac and the phone — you do not need to expose the control API to your local network; the frontend still connects to `http://localhost:8090`.
 
 ### Reliability (unplug / re-plug)
 
@@ -244,9 +259,15 @@ The frontend polls the backend API (default `http://localhost:8090`) every **1.5
 
 ### 🔗 Sync All Devices
 
-When two or more iPhones are connected, a **🔗 Sync All Devices** card appears at the top of the device list. Select it to broadcast every action — set position, clear, and cruise steps — to **all connected devices at once**. The card shows how many devices are connected (e.g. `2 / 2`).
+When two or more iPhones are connected, a **🔗 Sync All Devices** card appears at the top of the device list. Select it to broadcast every action — set position, clear, and cruise steps — only to **devices that are connected and have control enabled**. The card shows the connected count and the controllable count separately.
+
+All devices share a single cruise route; playing a different route on each phone is not currently supported. Each device card is labeled USB or Wi-Fi.
 
 Select an individual device card instead to control just that one.
+
+Each phone card has an **Enable control** toggle that can be operated from the keyboard and only updates once the setting is saved successfully. The setting is stored per phone UDID in `device_preferences.json` and is kept across reconnects. Disabling does not remove pairing and keeps the phone's connection and toggle, but stops GPS / cruise / step control for that phone; re-enabling does not automatically replay the previous position or cruise. If saving fails, the toggle stays as it was; if control is disabled but clearing the simulation on the phone fails, a warning is shown — do not assume the real location has been restored. If an older launcher is missing the toggle data, restart with the new version.
+
+Shortcuts already handed off to the phone may not be revocable, and disabling control does not guarantee that every location app on iOS updates its position immediately.
 
 ---
 
@@ -268,7 +289,11 @@ Select an individual device card instead to control just that one.
 
 > Moving the GPS manually (map click, input, D-pad, favorite) **while a cruise is playing** auto-pauses the cruise so your manual position isn't overwritten.
 
-**Save / Load Routes** — **💾 Save Route** stores the current waypoints + speed + loop under a name (in `localStorage`); **📂 Load Route** lists saved routes to load or delete.
+**Auto-rejoin for disconnected phones** — during a multi-device cruise, if one phone disconnects (cable pulled, Wi-Fi dropped, a transient error), it automatically rejoins this cruise once it reconnects and immediately receives the *current* cruise position (if the cruise is paused, it jumps to the paused position); old commands are not replayed. Phones you have manually **disabled control** for or **cleared** are not pulled back in automatically. If all phones disconnect at once (or the only phone in a single-device cruise disconnects), the cruise stops automatically and you need to press ▶ Play again after reconnecting.
+
+**Save / Load Routes** — **💾 Save Route** saves the current waypoints + speed + loop under a name (stored in `user_data.json`); if the name already exists, you're asked whether to overwrite that route or save it as a new one. **📂 Load Route** lists saved routes, each with **Load**, **✏️ Rename**, **⬆️ Overwrite with current waypoints**, and **🗑 Delete**.
+
+**⭐ My cruise routes (quick switch)** — a dropdown in the cruise panel lists all saved routes; pick one to apply it instantly, and the last applied route is remembered. Switching while a cruise is running asks first; after you confirm, the current cruise stops and the new route is applied.
 
 **Export GPX** — downloads `cruise_route.gpx` (standard GPX 1.1).
 
@@ -276,7 +301,9 @@ Select an individual device card instead to control just that one.
 
 ### ⭐ Favorites
 
-Stored in the browser's `localStorage` (key: `gps_favorites_v1`); persists across refreshes and restarts.
+Stored in `user_data.json` next to the launcher; persists across refreshes, closing the browser, and reboots. The browser only keeps a cache: if the launcher isn't running or is an older version, additions / edits are held in the browser for now and synced automatically once the launcher connects (you'll see a one-time notice).
+
+**Export / Import Backup** — **💾 Export Backup** downloads `gps_backup.json` (favorites, cruise routes, and base map choice; it does **not** include your Google key). When moving to a new computer, press **📥 Import Backup** there. Backup files exported by older versions can also be imported.
 
 **How to Add**
 - **⭐ Add Current Position** — saves the current coordinates (you enter a name).
@@ -303,9 +330,24 @@ The country name (in Traditional Chinese) is filled in automatically via reverse
 
 ---
 
+### 🗺 Base Map (OpenStreetMap / Google)
+
+The menu in the top-right corner of the map switches between **OpenStreetMap** (default, free), **Google Maps**, and **Google Satellite**; your choice is remembered and applied the next time you open the page. Search and country-name reverse lookups still use Nominatim (OpenStreetMap), so they never incur Google charges.
+
+**Setting your Google key** — click the ⚙️ next to the menu, paste your Google Maps API key, and save (it is stored in `user_data.json` and is not included in exported backups). If you pick Google without a key, the settings dialog opens and the map stays on OpenStreetMap; if the key is invalid or Google fails to load, the map automatically falls back to OpenStreetMap. After changing to a new key, refresh the page.
+
+**Cost and overspend protection** (based on Google's official pricing as of November 2026)
+- The Google Maps JavaScript API is only loaded when you pick a Google base map. Billing is per page open = 1 map load; dragging, zooming, and cruise movement are not charged separately.
+- The first 10,000 map loads each month are free; beyond that it's roughly US$7 per 1,000. Personal use usually stays within the free tier.
+- Your Google Cloud project needs billing enabled (a card on file) and the "Maps JavaScript API" enabled.
+- We recommend going to Google Cloud Console → **APIs & Services → Maps JavaScript API → Quotas** and setting the daily map load limit to 300: that caps a month at about 9,300 loads, guaranteeing you stay within the free tier. On days you hit the limit, the Google base map temporarily won't display — you won't be charged.
+- We recommend restricting the key under "API restrictions" to Maps JavaScript API only; if you open the page via http://localhost:8090/, you can also add a "Website restriction" of `http://localhost:8090/*`.
+
+---
+
 ### Device Management
 
-- USB is scanned every 6 seconds; new devices appear automatically.
+- Devices are scanned every 6 seconds according to the USB / Wi-Fi / Auto mode; new devices appear automatically.
 - Disconnected devices are removed (after a short debounce); the frontend auto-switches to the next connected device.
 - Status dot colors: 🟢 GPS connected · 🟡 tunnel OK, GPS connecting · 🔴 tunnel establishing / failed.
 
@@ -313,13 +355,25 @@ The country name (in Traditional Chinese) is filled in automatically via reverse
 
 ## HTTP API Reference
 
-The backend listens on `http://{HOST}:{PORT}` (default `127.0.0.1:8090`) with CORS fully open.
+The backend listens on `http://{HOST}:{PORT}` (default `127.0.0.1:8090`). CORS is fully open for the device-control APIs; the exception is `/userdata`, which only accepts the local map page (`file://` or `http://localhost:PORT`, `http://127.0.0.1:PORT`) and rejects all other sites.
+
+### Map Page & User Data
+
+| Method & Path | Description |
+|---------------|-------------|
+| `GET /`, `GET /map` | Serves `gps_map.html` (no other files are served) |
+| `GET /userdata` | Read `{ ok, exists, data: { version, updatedAt, favorites, cruiseRoutes, mapSettings } }` |
+| `POST /userdata` | Partial update; body may contain `favorites`, `cruiseRoutes`, `mapSettings` (requires `Content-Type: application/json`, 5MB max); returns `{ ok, updatedAt }` |
+
+Saves are written atomically, and the previous version is kept in `user_data.json.prev`. If the file is corrupted or can't be read due to permissions, the launcher refuses to overwrite it and returns `{ ok: false, error }`.
 
 ### Per-device
 
 | Method & Path | Description |
 |---------------|-------------|
 | `GET /devices` | List all detected devices (array of status objects) |
+| `GET /connection-mode` | Get the mode; returns `{ "ok": true, "mode": "usb" }` (mode can be `usb` / `wifi` / `auto`) |
+| `POST /connection-mode` | Set the mode — body `{ "mode": "wifi" }`; returns the same structure on success and aborts incompatible connections and cruises |
 | `POST /device/{idx}/set` | Set coordinates — body `{ "lat": .., "lon": .. }` |
 | `POST /device/{idx}/clear` | Clear simulation, restore real GPS |
 | `GET /device/{idx}/status` | Detailed status of one device |
@@ -340,6 +394,7 @@ The backend listens on `http://{HOST}:{PORT}` (default `127.0.0.1:8090`) with CO
     "name": "Aroha's iPhone",
     "ios": "17.4",
     "connected": true,
+    "connection_type": "usb",
     "simulating": true,
     "last_lat": 25.03300,
     "last_lon": 121.56540,
@@ -400,6 +455,16 @@ A broadcast response includes the affected device count, e.g. `{ "ok": true, "co
 
 **Q6: Phone won't reconnect after unplug/re-plug (older behavior)?**
 - This is fixed in the current version — re-plugging reconnects automatically without restarting the launcher.
+
+**Q7: My favorites or cruise routes are gone?**
+- In the new version, data is stored in `user_data.json`, so it no longer disappears when the browser's data is cleared.
+- If you see a "Launcher not connected (or older version)" notice, your data is being held in the browser for now; it syncs automatically once you start the new launcher.
+- If you deleted something by mistake, you can recover it from `user_data.json.prev` (the previous version): stop the launcher, copy `.prev` over `user_data.json`, then start the launcher again.
+
+**Q8: I picked Google Maps but it keeps falling back to OpenStreetMap?**
+- Check that the key is correct and that **Maps JavaScript API** and billing are enabled in Google Cloud.
+- If the key has a "Website restriction", open the page via http://localhost:8090/ instead (opening the file directly has no website address, so the restriction blocks it).
+- Check whether you've hit the daily quota limit you set (it resets at midnight Pacific Time the next day).
 
 ---
 
