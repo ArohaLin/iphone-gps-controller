@@ -211,3 +211,11 @@ __marimo__/
 .claude/
 old/
 *.log.*
+# 每台手機的私密執行設定與原子寫入暫存檔
+/device_preferences.json
+/device_preferences.json.bak-*
+/.device_preferences.*.tmp
+# 收藏點／巡航路線等使用者資料（含私人位置）與其上一代、原子寫入暫存檔
+/user_data.json
+/user_data.json.prev
+/.user_data.*.tmp

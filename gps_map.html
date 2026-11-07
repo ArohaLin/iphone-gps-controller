@@ -42,12 +42,21 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .sb-sub{font-size:11px;color:var(--muted);margin-top:1px}
 
 /* Device picker */
-#device-section{border-bottom:1px solid var(--border);flex-shrink:0}
-.device-header{padding:9px 16px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+#device-section{border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;max-height:min(196px,30vh)}
+.device-header{height:34px;box-sizing:border-box;padding:4px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0;font-size:11px;font-weight:600;color:var(--muted)}
+#connection-mode{width:72px;height:24px;padding:1px 4px;font-size:11px;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:5px}
+#connection-mode-status{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--warn)}
+.device-header .device-scan-btn{margin-left:auto;flex-shrink:0}
 .device-scan-btn{padding:3px 8px;background:var(--surf2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:10px}
 .device-scan-btn:hover{color:var(--text);background:var(--surf3)}
-#device-list{display:flex;flex-direction:column;gap:0}
-.device-card{padding:9px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;display:flex;align-items:center;gap:10px}
+#device-list{display:flex;flex-direction:column;gap:0;min-height:0;overflow-y:auto}
+.device-card{height:32px;box-sizing:border-box;flex-shrink:0;padding:4px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;display:flex;align-items:center;gap:6px}
+.device-card .dc-name{flex:1;min-width:0;font-size:12px}
+.dc-transport,.dc-count,.dc-toggle,.dc-control-status{font-size:10px;white-space:nowrap;flex-shrink:0;color:var(--muted)}
+.dc-toggle{display:flex;align-items:center;gap:2px;cursor:pointer}
+.dc-toggle input{margin:0;width:14px;height:14px}
+.dc-control-status{max-width:60px;overflow:hidden;text-overflow:ellipsis;color:var(--warn)}
+.dc-control-status:empty{display:none}
 .device-card:last-child{border-bottom:none}
 .device-card:hover{background:var(--surf2)}
 .device-card.selected{background:var(--primary-hi);border-left:3px solid var(--primary)}
@@ -65,7 +74,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .dc-name{font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dc-sub{font-size:10.5px;color:var(--muted);margin-top:1px}
 .dc-badge{font-size:10px;padding:2px 6px;border-radius:10px;background:var(--primary-hi);color:var(--primary);font-weight:600;flex-shrink:0}
-.no-devices{padding:16px;text-align:center;color:var(--faint);font-size:12px}
+.no-devices{padding:6px 12px;text-align:center;color:var(--faint);font-size:12px}
 
 /* Mode tabs */
 .mode-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -98,7 +107,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 /* Inputs */
 .field-label{font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:500}
 .field-row{display:flex;gap:6px}
-input[type=number],input[type=text]{background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px;width:100%;outline:none;transition:border-color .2s;-moz-appearance:textfield}
+input[type=number],input[type=text],input[type=password]{background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px;width:100%;outline:none;transition:border-color .2s;-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
 input:focus{border-color:var(--primary)}
 .go-btn{padding:7px 14px;background:var(--primary);border:none;border-radius:6px;color:white;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
@@ -288,6 +297,30 @@ input:focus{border-color:var(--primary)}
 .cr-meta{font-size:10.5px;color:var(--muted);margin-top:2px}
 .cr-btns{display:flex;gap:4px;flex-shrink:0}
 .cr-empty{padding:22px;text-align:center;color:var(--faint);font-size:12px}
+#cruise-load-modal .cruise-modal-box{width:360px}
+#cruise-load-modal .cr-item{flex-wrap:wrap}
+#cruise-load-modal .cr-btns{width:100%;justify-content:flex-end}
+.cr-btns .btn{padding:4px 8px;font-size:11px}
+.csm-dup{flex-direction:column;gap:6px;background:rgba(232,175,52,.1);border:1px solid rgba(232,175,52,.3);border-radius:6px;padding:8px 10px;font-size:11.5px;color:var(--warn);line-height:1.5}
+
+/* 巡航路線快速切換 */
+.cruise-fav-row{display:flex;gap:8px}
+#cruise-fav-select{flex:1;min-width:0;height:34px;padding:4px 8px;font-size:12.5px;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:6px;outline:none;cursor:pointer}
+#cruise-fav-select:focus{border-color:var(--primary)}
+#cruise-fav-select:disabled{opacity:.5;cursor:not-allowed}
+
+/* 底圖切換（右上角，讓出 device-hud 的位置） */
+.leaflet-top.leaflet-right{top:38px}
+.basemap-ctl{display:flex;gap:4px;align-items:center;background:var(--surf);border:1px solid var(--border);border-radius:6px;padding:3px;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.basemap-ctl select{height:26px;padding:1px 6px;font-size:12px;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:5px;outline:none;cursor:pointer}
+.basemap-ctl select:focus{border-color:var(--primary)}
+.basemap-ctl button{width:26px;height:26px;padding:0;border:1px solid var(--border);border-radius:5px;background:var(--surf2);color:var(--text);cursor:pointer;font-size:13px;line-height:24px}
+.basemap-ctl button:hover{background:var(--surf3)}
+.gkey-row{display:flex;gap:6px}
+.gkey-row input{flex:1;min-width:0}
+.gkey-row .btn{padding:6px 10px;font-size:12px}
+.gkey-msg{font-size:11.5px;color:var(--warn);line-height:1.5}
+.gkey-note{font-size:10.5px;color:var(--muted);line-height:1.6}
 </style>
 </head>
 <body>
@@ -311,7 +344,13 @@ input:focus{border-color:var(--primary)}
   <div id="device-section">
     <div class="device-header">
       <span>裝置</span>
-      <button class="device-scan-btn" onclick="refreshDevices()">↻ 重新掃描</button>
+      <select id="connection-mode" aria-label="連線模式" title="切換模式會中止不相容的連線與巡航；重連後不會自動重播，請手動重新開始。" onchange="changeConnectionMode(this.value)" disabled>
+        <option value="usb">USB</option>
+        <option value="wifi">Wi-Fi</option>
+        <option value="auto">自動</option>
+      </select>
+      <span id="connection-mode-status" role="status" aria-live="polite" title="正在確認連線模式…">確認中…</span>
+      <button class="device-scan-btn" onclick="refreshDevices()" title="重新掃描裝置" aria-label="重新掃描裝置">↻</button>
     </div>
     <div id="device-list"><div class="no-devices">掃描中...</div></div>
   </div>
@@ -629,6 +668,11 @@ input:focus{border-color:var(--primary)}
       <button class="btn btn-ghost" onclick="exportGPX()" style="flex:1">⬇ 匯出 GPX</button>
       <button class="btn btn-ghost" onclick="undoWaypoint()" title="撤銷">↩</button>
     </div>
+    <div class="cruise-fav-row">
+      <select id="cruise-fav-select" aria-label="我的巡航路線" title="選一條已儲存的路線，直接套用到地圖" onchange="onCruiseFavSelect(this)" disabled>
+        <option value="">⭐ 我的巡航路線（尚無）</option>
+      </select>
+    </div>
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="openSaveCruiseModal()" style="flex:1">💾 儲存路線</button>
       <button class="btn btn-ghost" onclick="openLoadCruiseModal()" style="flex:1">📂 讀取路線</button>
@@ -651,6 +695,12 @@ input:focus{border-color:var(--primary)}
       <div id="fav-list"><div class="fav-empty">尚無儲存地點<br>點擊 ⭐ 或從搜尋結果加入</div></div>
     </div>
     <div class="hint">ℹ 搜尋結果 Popup 可直接加入最愛</div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="exportBackup()" title="把最愛＋巡航路線存成一個 JSON 檔">💾 匯出備份</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('backup-file').click()" title="從 JSON 備份檔還原最愛＋巡航路線">📥 匯入備份</button>
+      <input type="file" id="backup-file" accept="application/json,.json" style="display:none" onchange="importBackup(this)">
+    </div>
+    <div class="hint">💡 最愛與巡航路線會存到 Launcher 的電腦檔案；換電腦時先「匯出備份」，到新電腦再「匯入備份」</div>
   </div><!-- end panel-fav -->
 
   <!-- Launcher info -->
@@ -703,9 +753,16 @@ input:focus{border-color:var(--primary)}
   <div class="cruise-modal-box">
     <div class="cruise-modal-title">💾 儲存巡航路線</div>
     <div class="fav-modal-label">路線名稱</div>
-    <input id="csm-name" type="text" placeholder="例：台北市區繞行"
+    <input id="csm-name" type="text" placeholder="例：台北市區繞行" oninput="hideCruiseDup()"
       onkeydown="if(event.key==='Enter') confirmSaveCruise(); if(event.key==='Escape') closeSaveCruiseModal()">
     <div style="font-size:10.5px;color:var(--muted)" id="csm-info"></div>
+    <div id="csm-dup" class="csm-dup" style="display:none" role="alert">
+      <div id="csm-dup-msg"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" style="flex:1;padding:6px 8px;font-size:12px" onclick="confirmSaveCruise('overwrite')">覆蓋原路線</button>
+        <button class="btn btn-ghost" style="flex:1;padding:6px 8px;font-size:12px" onclick="confirmSaveCruise('new')">另存新路線</button>
+      </div>
+    </div>
     <div class="fav-modal-btns">
       <button class="btn-cancel" onclick="closeSaveCruiseModal()">取消</button>
       <button class="btn-confirm" onclick="confirmSaveCruise()">儲存</button>
@@ -724,7 +781,30 @@ input:focus{border-color:var(--primary)}
   </div>
 </div>
 
+<!-- Google 地圖金鑰 Modal -->
+<div id="gkey-modal" class="cruise-modal hidden">
+  <div class="cruise-modal-box">
+    <div class="cruise-modal-title">⚙️ Google 地圖金鑰</div>
+    <div class="gkey-msg" id="gkey-msg"></div>
+    <div class="fav-modal-label">Google Maps API 金鑰</div>
+    <div class="gkey-row">
+      <input id="gkey-input" type="password" autocomplete="off" spellcheck="false" placeholder="貼上你的金鑰"
+        onkeydown="if(event.key==='Enter') saveGoogleKey(); if(event.key==='Escape') closeGoogleKeyModal()">
+      <button type="button" class="btn btn-ghost" id="gkey-toggle" onclick="toggleGoogleKeyVisible()" title="顯示或隱藏金鑰">顯示</button>
+    </div>
+    <div class="gkey-note">金鑰只存在這台電腦（Launcher 資料檔與瀏覽器快取），匯出備份不會包含它。需在 Google Cloud 啟用「Maps JavaScript API」。只有選擇 Google 底圖時才會連線 Google。</div>
+    <div class="fav-modal-btns">
+      <button class="btn-cancel" onclick="clearGoogleKey()">清除</button>
+      <button class="btn-cancel" onclick="closeGoogleKeyModal()">取消</button>
+      <button class="btn-confirm" onclick="saveGoogleKey()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Google 底圖外掛（只載入外掛本身；Google Maps API 要等使用者選 Google 時才載入） -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet.gridlayer.googlemutant@0.15.0/dist/Leaflet.GoogleMutant.js"
+  integrity="sha384-tmQMXh/NV0c3PxHlGOQbgfFFWAxbwFOrFX2bZsJWHo8qOGE3wnMeU/8GSlQbJk0P" crossorigin="anonymous"></script>
 <script>
 // ── Settings ──────────────────────────────────────────────────────
 const META  = 'http://localhost:8090';
@@ -737,26 +817,114 @@ const state = {
   deviceIdx: null,   // Currently selected device.idx
   devices: [],
   speed: 5, loop: false,
-  playing: false, cruiseTimer: null,
+  playing: false, cruiseActive: false,
 };
 let map, phoneMarkers = {}, pulseMarkers = {}, routeLine;
 let wpMarkers = [], wpData = [];
 let toastTimer = null;
+let _positionVersion = 0, _manualPending = 0, _manualPosition = false;
+let _manualRevision = 0;
+let _devicePositionReady = false, _devicePollSeq = 0;
+let _cruiseRevision = 0, _cruisePollSeq = 0;
+let _connectionMode = 'usb', _connectionModeKnown = false;
+let _connectionModePending = false, _connectionModePollBusy = false, _connectionModeRevision = 0;
+const connectionModeLabels = { usb: 'USB', wifi: 'Wi-Fi', auto: '自動' };
+const _deviceTogglePending = new Map(), _deviceToggleMessages = new Map();
+let _deviceControlRevision = 0;
+
+function controllableDevices() {
+  return state.devices.filter(d => d.connected && d.enabled === true && !_deviceTogglePending.has(d.udid));
+}
+function canControlSelection() {
+  if (state.deviceIdx === 'all' && _deviceTogglePending.size) return false;
+  return controllableDevices().some(d => state.deviceIdx === 'all' || state.deviceIdx === d.idx);
+}
+function requireDeviceControl() {
+  if (canControlSelection()) return true;
+  showToast('請先選擇已連線且已啟用控制的手機；儲存開關期間請稍候。', 'err');
+  return false;
+}
+function updateControlAvailability() {
+  const blocked = !canControlSelection();
+  document.querySelectorAll('button[onclick]').forEach(button => {
+    if (/^(gotoInput|pan|clearLocation|addSteps|addStepsCustom|deleteSteps|resetSteps|startWalking)\(/.test(button.getAttribute('onclick'))) {
+      button.disabled = blocked || (button.id === 'btn-walk-play' && !!_walkTimer);
+    }
+  });
+  document.getElementById('btn-play').disabled = blocked || state.playing;
+  document.getElementById('btn-pause').disabled = blocked || !state.playing;
+  document.getElementById('btn-stop').disabled = blocked || !state.cruiseActive;
+}
+function escapeDeviceText(value) {
+  return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+}
+function mergePendingDeviceControls(devs) {
+  return devs.map(d => _deviceTogglePending.has(d.udid)
+    ? { ...d, enabled: _deviceTogglePending.get(d.udid) } : d);
+}
+async function toggleDeviceEnabled(idx, input) {
+  const device = state.devices.find(d => d.idx === idx);
+  if (!device) return;
+  const enabled = input.checked;
+  input.checked = device.enabled === true;
+  if (!device.udid || typeof device.enabled !== 'boolean' || _deviceTogglePending.has(device.udid)) return;
+  const udid = device.udid;
+  _deviceTogglePending.set(udid, device.enabled);
+  _deviceToggleMessages.set(udid, '正在儲存…');
+  ++_deviceControlRevision;
+  ++_cruiseRevision;
+  // 取消本頁自動步數，重新啟用不會重播。
+  if (_walkTimer && (state.deviceIdx === idx || state.deviceIdx === 'all')) stopWalking();
+  renderDeviceList(state.devices);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`${META}/device/${idx}/enabled`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }), signal: controller.signal,
+    });
+    if (response.status === 404) throw new Error('請重新啟動新版 Launcher，才能儲存控制開關。');
+    const data = await response.json();
+    if (!response.ok || data.ok !== true || typeof data.enabled !== 'boolean') {
+      throw new Error(data.error || '儲存失敗，控制開關維持原狀。');
+    }
+    state.devices = state.devices.map(d => d.udid === udid ? { ...d, enabled: data.enabled } : d);
+    const message = data.warning ? `警告：${data.warning}` : data.enabled
+      ? '已啟用控制；請手動設定位置或開始巡航。' : '已停用控制；保留連線與配對。';
+    _deviceToggleMessages.set(udid, message);
+    showToast(message, data.warning ? 'err' : 'ok');
+    ++_cruiseRevision;
+  } catch (e) {
+    const message = e.name === 'TypeError' || e.name === 'AbortError'
+      ? '無法儲存控制開關，請確認 Launcher 後重試；目前維持原狀。' : e.message;
+    _deviceToggleMessages.set(udid, message);
+    showToast(message, 'err');
+  } finally {
+    clearTimeout(timer);
+    _deviceTogglePending.delete(udid);
+    ++_deviceControlRevision;
+    renderDeviceList(state.devices);
+  }
+}
 
 // ── Init ───────────────────────────────────────────────────────────
 window.onload = () => {
   initMap();
   refreshDevices();
-  loadFavorites();
-  loadCruiseRoutes();
+  pollConnectionMode();
+  setInterval(pollConnectionMode, POLL_MS);
+  // 最愛／巡航路線／地圖設定：先用瀏覽器快取立即顯示，再向 Launcher 取正式資料（不阻塞地圖與輪詢）
+  initUserData();
   setInterval(pollDevices, POLL_MS);
+  pollCruiseStatus();
+  setInterval(pollCruiseStatus, POLL_MS);
+  setInterval(renderCurrentTime, 1000);
 };
 
 function initMap() {
   map = L.map('map', { center: [state.lat, state.lon], zoom: 15, zoomControl: false });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors', maxZoom: 19
-  }).addTo(map);
+  _baseLayer = _getBaseLayer('osm').addTo(map);   // 一律先顯示 OSM；偏好 Google 時由 _applySavedBaseMap 切換
+  _addBaseMapControl();
   L.control.zoom({ position: 'topright' }).addTo(map);
   map.on('click', onMapClick);
   map.on('mousemove', e => {
@@ -817,9 +985,104 @@ function setMode(m) {
 }
 
 // ── Device List ────────────────────────────────────────────────────
-async function refreshDevices() {
+async function requestConnectionMode(mode) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`${META}/connection-mode`, {
+      signal: controller.signal,
+      ...(mode === undefined ? {} : {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode }),
+      }),
+    });
+    if (response.status === 404) throw new Error('此 Launcher 不支援連線模式，請重啟新版 gps_launcher.py。');
+    const data = await response.json();
+    if (!response.ok || data.ok !== true || !Object.hasOwn(connectionModeLabels, data.mode)) {
+      throw new Error(data.error || '無法確認連線模式，請檢查 Launcher。');
+    }
+    return data.mode;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('連線模式請求逾時，請確認 Launcher 後重試。');
+    if (e instanceof TypeError || e.name === 'TypeError') {
+      throw new Error('無法取得連線模式，請確認 Launcher 已啟動；若剛更新，請重新啟動 Launcher。');
+    }
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+
+function setConnectionModeStatus(message, short = '') {
+  const status = document.getElementById('connection-mode-status');
+  status.title = message;
+  status.textContent = short;
+}
+async function pollConnectionMode() {
+  if (_connectionModePending || _connectionModePollBusy) return;
+  const revision = _connectionModeRevision;
+  _connectionModePollBusy = true;
+  const select = document.getElementById('connection-mode');
+  select.disabled = true;
+  try {
+    const mode = await requestConnectionMode();
+    if (_connectionModePending || revision !== _connectionModeRevision) return;
+    _connectionMode = mode;
+    _connectionModeKnown = true;
+    select.value = mode;
+    setConnectionModeStatus(`目前模式：${connectionModeLabels[mode]}`);
+  } catch (e) {
+    if (_connectionModePending || revision !== _connectionModeRevision) return;
+    _connectionModeKnown = false;
+    setConnectionModeStatus(e.message || '無法取得連線模式，請確認 Launcher。', '請檢查／重啟 Launcher');
+  } finally {
+    _connectionModePollBusy = false;
+    select.disabled = _connectionModePending || !_connectionModeKnown;
+  }
+}
+
+async function changeConnectionMode(mode) {
+  const select = document.getElementById('connection-mode');
+  select.value = _connectionMode; // 只有後端確認成功才顯示新選項。
+  if (_connectionModePending || !_connectionModeKnown || mode === _connectionMode
+      || !Object.hasOwn(connectionModeLabels, mode)) return;
+  _connectionModePending = true;
+  ++_connectionModeRevision;
+  select.disabled = true;
+  const status = document.getElementById('connection-mode-status');
+  setConnectionModeStatus(`正在切換至 ${connectionModeLabels[mode]}；不相容的連線與巡航將中止…`, '切換中…');
+  try {
+    _connectionMode = await requestConnectionMode(mode);
+    select.value = _connectionMode;
+    setConnectionModeStatus(`目前模式：${connectionModeLabels[_connectionMode]}；重連後請手動重新開始。`);
+    ++_cruiseRevision; // 忽略切換前尚未返回的巡航狀態。
+    pollCruiseStatus();
+    refreshDevices();
+  } catch (e) {
+    setConnectionModeStatus(e.message || '切換失敗，請確認 Launcher 後重試。', '切換失敗，請重試');
+    showToast(status.title, 'err');
+  } finally {
+    _connectionModePending = false;
+    select.disabled = _connectionModePollBusy || !_connectionModeKnown;
+  }
+}
+
+// 取得裝置清單；順便告訴資料層 Launcher 是否在線（恢復連線時補同步，不另開輪詢）。
+async function fetchDeviceList() {
   try {
     const devs = await fetch(`${META}/devices`).then(r => r.json());
+    _udOnLauncherUp();
+    return devs;
+  } catch (e) {
+    _udOnLauncherDown();
+    throw e;
+  }
+}
+
+async function refreshDevices() {
+  const controlRevision = _deviceControlRevision;
+  try {
+    let devs = await fetchDeviceList();
+    if (controlRevision !== _deviceControlRevision) return;
+    devs = mergePendingDeviceControls(devs);
     state.devices = devs;
     renderDeviceList(devs);
     document.getElementById('launcher-sub').textContent =
@@ -838,21 +1101,21 @@ async function refreshDevices() {
 }
 
 function renderDeviceList(devs) {
+  updateControlAvailability();
+  const focusId = document.activeElement?.id;
   const el = document.getElementById('device-list');
   if (!devs.length) { el.innerHTML = '<div class="no-devices">無已連線裝置</div>'; return; }
 
   // Sync-all virtual card (shown whenever there are devices; useful w/ 2+)
   const connCount = devs.filter(d => d.connected).length;
+  const controlCount = controllableDevices().length;
   const syncSel   = state.deviceIdx === 'all' ? 'selected' : '';
   const syncDot   = connCount === devs.length && connCount > 0 ? 'ok'
                   : (connCount > 0 ? 'connecting' : 'err');
   const syncCard = `<div class="device-card sync-card ${syncSel}" onclick="selectDevice('all')">
     <div class="dc-dot ${syncDot}"></div>
-    <div class="dc-info">
-      <div class="dc-name">🔗 同步全部裝置</div>
-      <div class="dc-sub">${connCount} / ${devs.length} 台已連線</div>
-    </div>
-    ${state.deviceIdx === 'all' ? '<div class="dc-badge">使用中</div>' : ''}
+    <div class="dc-name" title="同步全部裝置：只控制已連線且已啟用的手機">🔗 同步全部</div>
+    <span class="dc-count" title="${connCount} / ${devs.length} 台已連線 · ${controlCount} 台可控制">連線 ${connCount}/${devs.length} · 可控 ${controlCount}</span>
   </div>`;
 
   const cards = devs.map(d => {
@@ -861,20 +1124,33 @@ function renderDeviceList(devs) {
       ? (d.simulating ? `模擬中 · ${d.last_lat?.toFixed(4) ?? '—'}, ${d.last_lon?.toFixed(4) ?? '—'}` : `已連線 · iOS ${d.ios}`)
       : (d.tunnel_ok ? 'GPS 連線中...' : '建立 Tunnel...');
     const sel = state.deviceIdx === d.idx ? 'selected' : '';
+    const supported = typeof d.enabled === 'boolean' && !!d.udid;
+    const pending = _deviceTogglePending.has(d.udid);
+    const message = supported ? (_deviceToggleMessages.get(d.udid) || (d.enabled ? '控制已啟用' : '控制已停用；保留連線'))
+      : '請重新啟動新版 Launcher，才能儲存控制開關。';
+    const transport = d.connection_type === 'usb' ? 'USB' : d.connection_type === 'wifi' ? 'Wi-Fi' : '未知';
+    const detail = `${d.name} · ${transport === '未知' ? '連線方式未知' : transport} · ${sub} · ${message}`;
+    const shortMessage = !supported ? '需更新' : pending ? '儲存中' : message.startsWith('警告：') ? '清除警告'
+      : /失敗|無法|重啟/.test(message) ? '儲存失敗' : '';
     return `<div class="device-card ${sel}" onclick="selectDevice(${d.idx})">
-      <div class="dc-dot ${dotCls}"></div>
-      <div class="dc-info">
-        <div class="dc-name">${d.name}</div>
-        <div class="dc-sub">${sub}</div>
-      </div>
-      ${state.deviceIdx === d.idx ? '<div class="dc-badge">使用中</div>' : ''}
+      <div class="dc-dot ${dotCls}" title="${escapeDeviceText(sub)}" role="img" aria-label="${escapeDeviceText(sub)}"></div>
+      <div class="dc-name" title="${escapeDeviceText(detail)}" aria-label="${escapeDeviceText(detail)}">${escapeDeviceText(d.name)}</div>
+      <span class="dc-transport" title="${escapeDeviceText(detail)}">${transport}</span>
+        <label class="dc-toggle" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" title="${escapeDeviceText(message)}">
+          <input type="checkbox" id="device-enabled-${d.idx}" aria-label="${escapeDeviceText(d.name)}：啟用控制"
+            aria-describedby="device-enabled-status-${d.idx}" ${d.enabled === true ? 'checked' : ''} ${!supported || pending ? 'disabled' : ''}
+            onchange="toggleDeviceEnabled(${d.idx}, this)"> 啟用
+        </label>
+        <span class="dc-control-status" id="device-enabled-status-${d.idx}" role="status" title="${escapeDeviceText(message)}" aria-label="${escapeDeviceText(message)}">${shortMessage}</span>
     </div>`;
   }).join('');
 
   el.innerHTML = syncCard + cards;
+  if (focusId?.startsWith('device-enabled-')) document.getElementById(focusId)?.focus({ preventScroll: true });
 }
 
 function selectDevice(idx, showToastMsg = true) {
+  if (state.deviceIdx !== idx) _devicePositionReady = false;
   state.deviceIdx = idx;
 
   // Sync-all virtual device
@@ -883,7 +1159,7 @@ function selectDevice(idx, showToastMsg = true) {
     if (showToastMsg) showToast('已切換至同步模式（全部裝置）', 'ok');
     renderDeviceList(state.devices);
     // Pre-create markers for every device so they appear immediately
-    state.devices.forEach(d => { getOrCreateMarkers(d.idx); });
+    controllableDevices().forEach(d => { getOrCreateMarkers(d.idx); });
     return;
   }
 
@@ -895,16 +1171,23 @@ function selectDevice(idx, showToastMsg = true) {
     // Create map marker
     getOrCreateMarkers(idx);
     // Sync coordinates
-    if (dev.last_lat != null && dev.last_lon != null) {
+    if (!_manualPending && !_manualPosition && !state.cruiseActive
+        && dev.last_lat != null && dev.last_lon != null) {
       gotoCoord(parseFloat(dev.last_lat), parseFloat(dev.last_lon), true);
+      _devicePositionReady = true;
     }
   }
 }
 
 // ── Status Polling ────────────────────────────────────────────────
 async function pollDevices() {
+  const controlRevision = _deviceControlRevision;
+  const version = _positionVersion, seq = ++_devicePollSeq;
   try {
-    const devs = await fetch(`${META}/devices`).then(r => r.json());
+    let devs = await fetchDeviceList();
+    if (controlRevision !== _deviceControlRevision) return;
+    devs = mergePendingDeviceControls(devs);
+    if (seq !== _devicePollSeq || version !== _positionVersion || _manualPending) return;
     state.devices = devs;
     renderDeviceList(devs);
 
@@ -916,11 +1199,11 @@ async function pollDevices() {
         return;
       }
       const conns = devs.filter(d => d.connected);
-      const sims  = devs.filter(d => d.simulating);
-      const total = devs.reduce((s, d) => s + (d.set_count || 0), 0);
+      const sims  = controllableDevices().filter(d => d.simulating);
+      const total = controllableDevices().reduce((s, d) => s + (d.set_count || 0), 0);
       const maxUp = Math.max(0, ...devs.map(d => d.uptime_sec || 0));
 
-      document.getElementById('sv-connected').textContent = `${conns.length} / ${devs.length} 台`;
+      document.getElementById('sv-connected').textContent = `${conns.length} / ${devs.length} 台連線 · ${controllableDevices().length} 台可控制`;
       document.getElementById('sv-connected').className   = `status-val ${conns.length === devs.length && conns.length ? 'ok' : (conns.length ? 'warn' : 'err')}`;
       document.getElementById('sv-simulating').textContent= `${sims.length} / ${devs.length} 台`;
       document.getElementById('sv-simulating').className  = `status-val ${sims.length ? 'ok' : 'warn'}`;
@@ -928,12 +1211,14 @@ async function pollDevices() {
       document.getElementById('sv-uptime').textContent    = fmtTime(maxUp);
 
       // Move each device's marker to its own reported coords (may differ briefly during fan-out).
-      devs.forEach(d => {
+      controllableDevices().forEach(d => {
+        if (state.cruiseActive || _manualPosition || _devicePositionReady) return;
         if (d.last_lat == null || d.last_lon == null) return;
         const m = getOrCreateMarkers(d.idx);
         m.phone.setLatLng([d.last_lat, d.last_lon]);
         m.pulse.setLatLng([d.last_lat, d.last_lon]);
       });
+      if (devs.some(d => d.last_lat != null && d.last_lon != null)) _devicePositionReady = true;
 
       // Surface the first new error from any device
       const errDev = devs.find(d => d.error);
@@ -965,9 +1250,11 @@ async function pollDevices() {
     document.getElementById('sv-uptime').textContent     = cur.uptime_sec != null ? fmtTime(cur.uptime_sec) : '—';
 
     // Sync coordinates (after reconnect)
-    if (cur.last_lat != null && cur.last_lon != null) {
+    if (!_devicePositionReady && !_manualPosition && !state.cruiseActive
+        && cur.last_lat != null && cur.last_lon != null) {
       const la = parseFloat(cur.last_lat), lo = parseFloat(cur.last_lon);
       if (la !== state.lat || lo !== state.lon) gotoCoord(la, lo, true);
+      _devicePositionReady = true;
     }
 
     // Error toast
@@ -981,18 +1268,25 @@ async function pollDevices() {
 
 // ── Set Coordinates ────────────────────────────────────────────────
 function gotoCoord(lat, lon, silent = false) {
+  if (!silent && !requireDeviceControl()) return;
+  if (!silent) {
+    _manualRevision++;
+    _positionVersion++;
+    _cruiseRevision++;
+    _manualPosition = true;
+  }
   // If the cruise is running and this is a real user-initiated move (not the
   // cruise stepping itself, and not a silent reconnect-sync), auto-pause so
   // the manual position isn't immediately overwritten by the next cruise step.
-  if (state.playing && !_cruiseInternalMove && !silent) {
-    pauseCruise();
+  if (state.playing && !silent) {
+    pauseCruise(false);
     showToast('⏸ 巡航已暫停（手動移動）', 'ok');
   }
   state.lat = lat; state.lon = lon;
 
   // Update map marker(s): all devices in sync mode, else only selected.
   if (state.deviceIdx === 'all') {
-    state.devices.forEach(d => {
+    controllableDevices().forEach(d => {
       const m = getOrCreateMarkers(d.idx);
       m.phone.setLatLng([lat, lon]);
       m.pulse.setLatLng([lat, lon]);
@@ -1012,6 +1306,7 @@ function gotoCoord(lat, lon, silent = false) {
     const url = state.deviceIdx === 'all'
       ? `${META}/devices/set`
       : `${META}/device/${state.deviceIdx}/set`;
+    _manualPending++;
     fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1022,11 +1317,16 @@ function gotoCoord(lat, lon, silent = false) {
         showToast(`${lat.toFixed(5)}, ${lon.toFixed(5)}${tag}`, 'ok');
       }
       else showToast(r.error, 'err');
-    }).catch(() => showToast('無法連線 Launcher', 'err'));
+    }).catch(() => showToast('無法連線 Launcher', 'err')).finally(() => {
+      _manualPending--;
+      _positionVersion++;
+      _cruiseRevision++;
+    });
   }
 }
 
 function gotoInput() {
+  if (!requireDeviceControl()) return;
   const raw   = document.getElementById('in-coord').value.replace(/\s/g, '');
   const parts = raw.split(',');
   const lat   = parseFloat(parts[0]);
@@ -1052,6 +1352,7 @@ function pan(dir) {
 
 // ── Clear GPS ─────────────────────────────────────────────────────
 function clearLocation() {
+  if (!requireDeviceControl()) return;
   if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
   const url = state.deviceIdx === 'all'
     ? `${META}/devices/clear`
@@ -1060,6 +1361,7 @@ function clearLocation() {
     .then(r => r.json()).then(r => {
       if (r.ok) {
         const tag = state.deviceIdx === 'all' ? ` (${r.count} 台)` : '';
+        finishCruise();
         showToast(`GPS 模擬已停止${tag}`, 'ok');
       }
       else showToast(r.error, 'err');
@@ -1075,8 +1377,11 @@ function addWaypoint(lat, lon) {
   }).addTo(map);
   marker.on('dragend', e => {
     const p = e.target.getLatLng();
-    wpData[idx] = { lat: p.lat, lon: p.lng };
-    updateWpList(); updateRouteInfo();
+    const markerIdx = wpMarkers.indexOf(e.target);
+    if (markerIdx < 0) return;
+    wpData[markerIdx] = { lat: p.lat, lon: p.lng };
+    updateWpList(); updateRoute(); updateRouteInfo();
+    updateCruise({ waypoints: wpData });
   });
   marker.on('dblclick', () => removeWaypoint(idx));
   marker.bindTooltip(`${idx + 1}`, { permanent: false });
@@ -1239,12 +1544,14 @@ function updateSpeed(v) {
   if (isNaN(val) || val <= 0) return;
   state.speed = val;
   updateRouteInfo();
+  updateCruise({ speed: val });
 }
 function toggleLoop() {
   state.loop = !state.loop;
   const el = document.getElementById('ri-loop');
   el.textContent = state.loop ? '開啟' : '關閉';
   el.style.color = state.loop ? 'var(--success)' : 'var(--muted)';
+  updateCruise({ loop: state.loop });
 }
 function updateRouteInfo() {
   if (wpData.length < 2) { document.getElementById('ri-dist').textContent = '—'; document.getElementById('ri-eta').textContent = '—'; return; }
@@ -1265,122 +1572,186 @@ function haversine(la1,lo1,la2,lo2) {
   return 2*R*Math.asin(Math.sqrt(a));
 }
 
-// ── Cruise (frontend only) ─────────────────────────────────────────
-// Module-level cruise state — survives pause/resume across GPS changes
-let _cruisePath   = [];   // full interpolated path
-let _cruiseSi     = 0;    // current step index
-let _cruisePaused = false; // true while user has paused
-let _cruiseInternalMove = false; // true only while the cruise itself is driving gotoCoord
-
-// Build per-second interpolated path from waypoints
-function _buildCruisePath(pts, kmh) {
-  const mps  = kmh * 1000 / 3600;
-  const path = [];
-  const segs = pts.length - 1;
-  for (let i = 0; i < segs; i++) {
-    const A = pts[i], B = pts[i + 1];
-    const dist  = haversine(A.lat, A.lon, B.lat, B.lon);
-    const steps = Math.max(1, Math.round(dist / mps));
-    for (let s = 0; s < steps; s++) {
-      const t = s / steps;
-      path.push({
-        lat: A.lat + (B.lat - A.lat) * t,
-        lon: A.lon + (B.lon - A.lon) * t,
-        progress: (i + t) / segs,
-        label: `${i+1}→${i+2}`,
-      });
-    }
-  }
-  path.push({ lat: pts[segs].lat, lon: pts[segs].lon, progress: 1, label: `${segs+1}` });
-  return path;
-}
-
-function _cruiseStep() {
-  if (!state.playing) return;
-  if (_cruiseSi >= _cruisePath.length) {
-    if (state.loop) {
-      _cruisePath = _buildCruisePath([...wpData], state.speed); // rebuild in case speed changed
-      _cruiseSi   = 0;
-    } else {
-      finishCruise(); return;
-    }
-  }
-  const pt = _cruisePath[_cruiseSi];
-  _cruiseInternalMove = true;
-  gotoCoord(pt.lat, pt.lon);
-  _cruiseInternalMove = false;
-  document.getElementById('progress-fill').style.width = `${(pt.progress * 100).toFixed(0)}%`;
-  document.getElementById('progress-text').textContent = `步 ${_cruiseSi + 1} / ${_cruisePath.length}`;
-  document.getElementById('play-status-text').textContent = pt.label;
-  _cruiseSi++;
-  state.cruiseTimer = setTimeout(_cruiseStep, 1000);
-}
+// ── Cruise (launcher event loop) ───────────────────────────────────
+let _cruisePaused = false;
+let _cruiseKnownId = null;
+let _cruiseSelectedId = null;
+let _lastCruiseState = null;
 
 function _setCruiseBtns({ play, pause, stop }) {
-  document.getElementById('btn-play').disabled  = !play;
-  document.getElementById('btn-pause').disabled = !pause;
-  document.getElementById('btn-stop').disabled  = !stop;
+  const blocked = !canControlSelection();
+  document.getElementById('btn-play').disabled  = blocked || !play;
+  document.getElementById('btn-pause').disabled = blocked || !pause;
+  document.getElementById('btn-stop').disabled  = blocked || !stop;
 }
 
 async function playCruise() {
-  // ── Resume from pause ──────────────────────────────────────────
+  if (!requireDeviceControl()) return;
+  if (_manualPending) return;
   if (_cruisePaused) {
-    _cruisePaused = false;
-    state.playing = true;
-    _setCruiseBtns({ play: false, pause: true, stop: true });
-    document.getElementById('btn-play').textContent = '▶ 播放';
-    document.getElementById('cruise-hint-text').textContent = '巡航中...';
-    document.getElementById('pause-label').classList.add('hidden');
-    _cruiseStep();
+    await cruiseCommand('resume');
     return;
   }
 
-  // ── Fresh start ────────────────────────────────────────────────
   if (wpData.length < 2) { showToast('請至少加入 2 個航點', 'err'); return; }
   if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
 
-  state.playing = true;
-  _cruisePaused = false;
-  _cruisePath   = _buildCruisePath([...wpData], state.speed);
-  _cruiseSi     = 0;
-
-  _setCruiseBtns({ play: false, pause: true, stop: true });
-  document.getElementById('progress-section').classList.remove('hidden');
-  document.getElementById('pause-label').classList.add('hidden');
-  document.getElementById('cruise-hint-text').textContent = '巡航中...';
-  _cruiseStep();
+  const revision = ++_cruiseRevision, manualRevision = _manualRevision;
+  try {
+    const res = await fetch(`${META}/cruise/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deviceIdx: state.deviceIdx,
+        waypoints: wpData,
+        speed: state.speed,
+        loop: state.loop,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || '巡航啟動失敗');
+    if (manualRevision === _manualRevision) _manualPosition = false;
+    if (revision !== _cruiseRevision) return;
+    _cruiseRevision++;
+    _cruiseKnownId = data.id;
+    applyCruiseStatus(data);
+  } catch (e) {
+    showToast(e.message || '無法連線 Launcher', 'err');
+  }
 }
 
-function pauseCruise() {
+async function pauseCruise(showMessage = true) {
   if (!state.playing) return;
-  if (state.cruiseTimer) { clearTimeout(state.cruiseTimer); state.cruiseTimer = null; }
-  state.playing = false;
-  _cruisePaused = true;
-  _setCruiseBtns({ play: true, pause: false, stop: true });
-  document.getElementById('btn-play').textContent = '▶ 繼續';
-  document.getElementById('cruise-hint-text').textContent = '⏸ 已暫停 — 按「繼續」從中斷處恢復';
-  document.getElementById('play-status-text').textContent = '⏸';
-  document.getElementById('pause-label').classList.remove('hidden');
-  showToast('⏸ 已暫停', 'ok');
+  await cruiseCommand('pause', showMessage ? '⏸ 已暫停' : null);
 }
 
-function stopCruise() {
-  if (state.cruiseTimer) { clearTimeout(state.cruiseTimer); state.cruiseTimer = null; }
-  _cruisePaused = false;
-  _cruisePath   = [];
-  _cruiseSi     = 0;
+async function stopCruise() {
+  await cruiseCommand('stop');
+}
+
+async function cruiseCommand(command, okMessage = null) {
+  if (!requireDeviceControl()) return;
+  const revision = ++_cruiseRevision, manualRevision = _manualRevision;
+  try {
+    const res = await fetch(`${META}/cruise/${command}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || '巡航操作失敗');
+    if (command === 'resume' && manualRevision === _manualRevision) _manualPosition = false;
+    if (revision !== _cruiseRevision) return null;
+    _cruiseRevision++;
+    applyCruiseStatus(data);
+    if (okMessage) showToast(okMessage, 'ok');
+    return data;
+  } catch (e) {
+    showToast(e.message || '無法連線 Launcher', 'err');
+    return null;
+  }
+}
+
+async function updateCruise(changes) {
+  if (!canControlSelection()) return;
+  if (!state.cruiseActive) return;
+  const revision = ++_cruiseRevision;
+  try {
+    const res = await fetch(`${META}/cruise/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(changes),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || '巡航更新失敗');
+    if (revision !== _cruiseRevision) return;
+    _cruiseRevision++;
+    applyCruiseStatus(data);
+  } catch (e) {
+    showToast(e.message || '無法更新巡航', 'err');
+  }
+}
+
+async function pollCruiseStatus() {
+  if (_deviceTogglePending.size) return;
+  const revision = _cruiseRevision, seq = ++_cruisePollSeq;
+  try {
+    const data = await fetch(`${META}/cruise/status`).then(r => r.json());
+    if (revision !== _cruiseRevision || seq !== _cruisePollSeq || _manualPending || _deviceTogglePending.size) return;
+    if (data.ok) applyCruiseStatus(data);
+  } catch (e) { /* Launcher 可能暫時不可用 */ }
+}
+
+function applyCruiseStatus(data) {
+  const previous = _lastCruiseState;
+  _lastCruiseState = data.state;
+  state.cruiseActive = !!data.active;
+  state.playing = data.state === 'running';
+  _cruisePaused = data.state === 'paused';
+
+  if (data.active && _cruiseKnownId !== data.id) {
+    _cruiseKnownId = data.id;
+    if (Array.isArray(data.waypoints) && data.waypoints.length >= 2) {
+      clearWaypoints();
+      data.waypoints.forEach(p => addWaypoint(p.lat, p.lon));
+    }
+    if (data.speed > 0) {
+      state.speed = data.speed;
+      document.getElementById('speed-input').value = data.speed;
+      updateRouteInfo();
+    }
+    state.loop = !!data.loop;
+    const loopEl = document.getElementById('ri-loop');
+    loopEl.textContent = state.loop ? '開啟' : '關閉';
+    loopEl.style.color = state.loop ? 'var(--success)' : 'var(--muted)';
+  }
+
+  if (data.active && _cruiseSelectedId !== data.id
+      && (data.deviceIdx === 'all' || state.devices.some(d => d.idx === data.deviceIdx))) {
+    selectDevice(data.deviceIdx, false);
+    _cruiseSelectedId = data.id;
+  }
+
+  const restorePaused = previous === null && data.state === 'paused';
+  const justCompleted = data.state === 'completed' && (previous === 'running' || previous === 'paused');
+  if (!_manualPending && !_manualPosition
+      && (state.playing || restorePaused || justCompleted)
+      && data.position && Number.isFinite(data.position.lat) && Number.isFinite(data.position.lon)) {
+    _positionVersion++;
+    _devicePositionReady = true;
+    gotoCoord(data.position.lat, data.position.lon, true);
+  }
+
+  if (data.active) {
+    const pct = Math.max(0, Math.min(100, (data.progress || 0) * 100));
+    document.getElementById('progress-section').classList.remove('hidden');
+    document.getElementById('progress-fill').style.width = `${pct.toFixed(0)}%`;
+    document.getElementById('progress-text').textContent = `進度 ${pct.toFixed(0)}%`;
+    document.getElementById('play-status-text').textContent = _cruisePaused
+      ? '⏸'
+      : `前往航點 ${Math.min((data.target_index || 1) + 1, data.waypoints.length)}`;
+    document.getElementById('btn-play').textContent = _cruisePaused ? '▶ 繼續' : '▶ 播放';
+    document.getElementById('cruise-hint-text').textContent = _cruisePaused
+      ? '⏸ 已暫停 — 按「繼續」從中斷處恢復'
+      : '巡航中 · 切換分頁或讓 Safari 進入背景，Launcher 仍會繼續；返回後自動更新位置。';
+    document.getElementById('pause-label').classList.toggle('hidden', !_cruisePaused);
+    _setCruiseBtns({ play: _cruisePaused, pause: !_cruisePaused, stop: true });
+    return;
+  }
+
   finishCruise();
+  if (data.state === 'completed' && previous !== 'completed') {
+    showToast('巡航完成', 'ok');
+  }
 }
 
 function finishCruise() {
   state.playing = false;
+  state.cruiseActive = false;
   _cruisePaused = false;
+  _cruiseKnownId = null;
+  _cruiseSelectedId = null;
   _setCruiseBtns({ play: true, pause: false, stop: false });
   document.getElementById('btn-play').textContent = '▶ 播放';
   document.getElementById('progress-section').classList.add('hidden');
   document.getElementById('pause-label').classList.add('hidden');
   document.getElementById('cruise-hint-text').textContent = '點擊地圖依序加入航點，完成後按播放';
-  if (!state.loop) showToast('巡航完成', 'ok');
 }
 
 // ── GPX Export ─────────────────────────────────────────────────────
@@ -1406,7 +1777,7 @@ async function refreshSteps() {
     // In sync mode show the first device's count (or dash)
     if (state.deviceIdx === 'all' && state.devices.length) {
       const el = document.getElementById('steps-display');
-      const total = state.devices.reduce((s, d) => s + (d.steps || 0), 0);
+      const total = controllableDevices().reduce((s, d) => s + (d.steps || 0), 0);
       el.textContent = total.toLocaleString();
     } else {
       document.getElementById('steps-display').textContent = '—';
@@ -1420,6 +1791,7 @@ async function refreshSteps() {
 }
 
 async function addSteps(count) {
+  if (!requireDeviceControl()) return;
   if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
   const url = state.deviceIdx === 'all'
     ? `${META}/devices/steps/add`
@@ -1451,6 +1823,7 @@ function addStepsCustom() {
 }
 
 async function deleteSteps() {
+  if (!requireDeviceControl()) return;
   const count = parseInt(document.getElementById('steps-del-input').value);
   if (!count || count < 1) { showToast('請輸入有效步數', 'err'); return; }
   if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
@@ -1474,6 +1847,7 @@ async function deleteSteps() {
 }
 
 async function resetSteps() {
+  if (!requireDeviceControl()) return;
   if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
   if (!confirm('確定要將步數清零嗎？')) return;
   if (state.deviceIdx === 'all') {
@@ -1509,6 +1883,7 @@ function _updateWalkEta() {
 }
 
 function startWalking() {
+  if (!requireDeviceControl()) return;
   if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
   _walkInterval = Math.max(1, parseInt(document.getElementById('walk-interval').value) || 5);
   _walkStepsPer = Math.max(1, parseInt(document.getElementById('walk-steps-per').value) || 10);
@@ -1524,6 +1899,7 @@ function startWalking() {
 }
 
 function _walkTick() {
+  if (!canControlSelection()) { stopWalking(); return; }
   _walkElapsed++;
   // Add steps at each interval boundary
   if (_walkElapsed % _walkInterval === 0) addSteps(_walkStepsPer);
@@ -1656,46 +2032,100 @@ function _refreshShortcutPending() {
 }
 
 // ── Cruise route save / load ──────────────────────────────────────
+// 記憶體 _cruiseRoutes 是唯一真實來源；存檔一律走 saveUserData（Launcher 檔案＋瀏覽器快取）。
 const CRUISE_KEY = 'gps_cruise_routes_v1';
 let _cruiseRoutes = [];
 
+// 只讀瀏覽器快取（啟動時先顯示、或另一個分頁更新快取時使用）
 function loadCruiseRoutes() {
-  try { _cruiseRoutes = JSON.parse(localStorage.getItem(CRUISE_KEY) || '[]'); } catch(e) { _cruiseRoutes = []; }
+  const list = _lsJson(CRUISE_KEY, []);
+  _cruiseRoutes = Array.isArray(list) ? list : [];
 }
 function _saveCruiseRoutes() {
-  localStorage.setItem(CRUISE_KEY, JSON.stringify(_cruiseRoutes));
+  const saving = saveUserData('cruiseRoutes');
+  renderCruiseFavSelect();
+  return saving;
+}
+function _findCruiseRoute(id) {
+  return _cruiseRoutes.find(r => String(r.id) === String(id));
+}
+function _cruiseSnapshot() {
+  return {
+    waypoints: wpData.map(w => ({ lat: w.lat, lon: w.lon })),
+    speed: state.speed,
+    loop:  state.loop,
+    savedAt: new Date().toISOString(),
+  };
+}
+function _newCruiseId() {
+  let id = Date.now();
+  while (_cruiseRoutes.some(r => r.id === id)) id++;
+  return id;
+}
+function _uniqueCruiseName(name) {
+  for (let n = 2; ; n++) {
+    const candidate = `${name} (${n})`;
+    if (!_cruiseRoutes.some(r => r.name === candidate)) return candidate;
+  }
+}
+
+// 「⭐ 我的巡航路線」下拉選單：預設選中上次套用的路線
+function renderCruiseFavSelect() {
+  const sel = document.getElementById('cruise-fav-select');
+  if (!sel) return;
+  const lastId = _mapSettings.lastCruiseRouteId;
+  const count = _cruiseRoutes.length;
+  sel.innerHTML = `<option value="">⭐ 我的巡航路線${count ? `（${count} 條）` : '（尚無）'}</option>`
+    + _cruiseRoutes.map(r => `<option value="${escapeDeviceText(r.id)}">${escapeDeviceText(r.name)}（${(r.waypoints || []).length} 點）</option>`).join('');
+  sel.value = lastId != null && _findCruiseRoute(lastId) ? String(lastId) : '';
+  sel.disabled = !count;
+}
+async function onCruiseFavSelect(sel) {
+  const r = _findCruiseRoute(sel.value);
+  if (!r || !(await applyCruiseRoute(r.id))) renderCruiseFavSelect();   // 取消或找不到 → 還原選取
 }
 
 function openSaveCruiseModal() {
   if (wpData.length < 2) { showToast('請至少加入 2 個航點才能儲存', 'err'); return; }
   document.getElementById('csm-name').value = '';
+  hideCruiseDup();
   document.getElementById('csm-info').textContent =
     `${wpData.length} 個航點 · 速度 ${state.speed} km/h${state.loop ? ' · 循環' : ''}`;
   document.getElementById('cruise-save-modal').classList.remove('hidden');
   requestAnimationFrame(() => document.getElementById('csm-name').focus());
 }
 function closeSaveCruiseModal() {
+  hideCruiseDup();
   document.getElementById('cruise-save-modal').classList.add('hidden');
 }
-function confirmSaveCruise() {
+function hideCruiseDup() {
+  document.getElementById('csm-dup').style.display = 'none';
+}
+// mode：undefined＝一般儲存（同名時先詢問）、'overwrite'＝覆蓋同名路線、'new'＝另存（自動加編號）
+function confirmSaveCruise(mode) {
   const name = document.getElementById('csm-name').value.trim();
   if (!name) { showToast('名稱不能為空', 'err'); return; }
-  loadCruiseRoutes();   // Re-read in case another tab changed it
-  _cruiseRoutes.push({
-    id: Date.now(),
-    name,
-    waypoints: wpData.map(w => ({ lat: w.lat, lon: w.lon })),
-    speed: state.speed,
-    loop:  state.loop,
-    savedAt: new Date().toISOString(),
-  });
+  const existing = _cruiseRoutes.find(r => r.name === name);
+  if (existing && mode !== 'overwrite' && mode !== 'new') {
+    document.getElementById('csm-dup-msg').textContent = `已有名為「${name}」的路線，要覆蓋它，還是另存一條新的？`;
+    document.getElementById('csm-dup').style.display = 'flex';
+    return;
+  }
+  let message;
+  if (existing && mode === 'overwrite') {
+    Object.assign(existing, _cruiseSnapshot());
+    message = `💾 已覆蓋「${existing.name}」`;
+  } else {
+    const finalName = existing ? _uniqueCruiseName(name) : name;
+    _cruiseRoutes.push({ id: _newCruiseId(), name: finalName, ..._cruiseSnapshot() });
+    message = `💾 「${finalName}」已儲存`;
+  }
   _saveCruiseRoutes();
   closeSaveCruiseModal();
-  showToast(`💾 「${name}」已儲存`, 'ok');
+  showToast(message, 'ok');
 }
 
 function openLoadCruiseModal() {
-  loadCruiseRoutes();
   renderCruiseRouteList();
   document.getElementById('cruise-load-modal').classList.remove('hidden');
 }
@@ -1704,52 +2134,90 @@ function closeLoadCruiseModal() {
 }
 function renderCruiseRouteList() {
   const el = document.getElementById('cruise-route-list');
+  if (!el) return;
   if (!_cruiseRoutes.length) {
     el.innerHTML = '<div class="cr-empty">尚無儲存路線<br>請先設定航點後按「儲存路線」</div>';
     return;
   }
   el.innerHTML = _cruiseRoutes.map(r => {
     const d = new Date(r.savedAt);
-    const dateStr = `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} `
+    const dateStr = isNaN(d) ? '' : ` · ${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} `
                   + `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
     const loopTag = r.loop ? ' · 循環' : '';
+    const name = escapeDeviceText(r.name);
+    const idArg = escapeDeviceText(JSON.stringify(r.id));
     return `<div class="cr-item">
       <div class="cr-info">
-        <div class="cr-name" title="${r.name}">${r.name}</div>
-        <div class="cr-meta">${r.waypoints.length} 個航點 · ${r.speed} km/h${loopTag} · ${dateStr}</div>
+        <div class="cr-name" title="${name}">${name}</div>
+        <div class="cr-meta">${(r.waypoints || []).length} 個航點 · ${escapeDeviceText(r.speed)} km/h${loopTag}${dateStr}</div>
       </div>
       <div class="cr-btns">
-        <button class="btn btn-primary" style="padding:4px 10px;font-size:11px"
-          onclick="applyCruiseRoute(${r.id})">讀取</button>
-        <button class="btn btn-danger" style="padding:4px 8px;font-size:11px"
-          onclick="deleteCruiseRoute(${r.id})">🗑</button>
+        <button class="btn btn-primary" onclick="applyCruiseRoute(${idArg})">讀取</button>
+        <button class="btn btn-ghost" onclick="renameCruiseRoute(${idArg})" title="改名">✏️ 改名</button>
+        <button class="btn btn-ghost" onclick="overwriteCruiseRoute(${idArg})" title="用地圖上目前的航點、速度、循環設定覆蓋這條路線">⬆️ 用目前航點覆蓋</button>
+        <button class="btn btn-danger" onclick="deleteCruiseRoute(${idArg})" title="刪除">🗑</button>
       </div>
     </div>`;
   }).join('');
 }
-function applyCruiseRoute(id) {
-  const r = _cruiseRoutes.find(r => r.id === id);
-  if (!r) return;
-  if (state.playing) stopCruise();
+// 回傳 true＝已套用；false＝找不到或使用者取消
+async function applyCruiseRoute(id) {
+  const r = _findCruiseRoute(id);
+  if (!r) return false;
+  const running = state.playing || state.cruiseActive;
+  if (running && !confirm('切換會停止目前巡航，確定要切換嗎？')) return false;
+  if (running) await stopCruise();   // 先停掉舊巡航，避免後面的循環設定送到舊路線
   clearWaypoints();
-  r.waypoints.forEach(w => addWaypoint(w.lat, w.lon));
+  (r.waypoints || []).forEach(w => addWaypoint(w.lat, w.lon));
   // Restore speed
   state.speed = r.speed;
   document.getElementById('speed-input').value = r.speed;
   updateRouteInfo();
   // Restore loop
-  if (state.loop !== r.loop) toggleLoop();
+  if (state.loop !== !!r.loop) toggleLoop();
   // Fit map
-  if (r.waypoints.length >= 2) {
+  if ((r.waypoints || []).length >= 2) {
     map.fitBounds(L.latLngBounds(r.waypoints.map(w => [w.lat, w.lon])), { padding: [40, 40] });
   }
   closeLoadCruiseModal();
+  _mapSettings.lastCruiseRouteId = r.id;
+  saveUserData('mapSettings');
+  renderCruiseFavSelect();
   showToast(`📂 「${r.name}」已讀取`, 'ok');
+  return true;
+}
+function renameCruiseRoute(id) {
+  const r = _findCruiseRoute(id);
+  if (!r) return;
+  const input = prompt('輸入新的路線名稱', r.name);
+  if (input === null) return;
+  const name = input.trim();
+  if (!name) { showToast('名稱不能為空', 'err'); return; }
+  if (name === r.name) return;
+  if (_cruiseRoutes.some(o => o !== r && o.name === name)) { showToast('已有同名路線，請換一個名稱', 'err'); return; }
+  r.name = name;
+  _saveCruiseRoutes();
+  renderCruiseRouteList();
+  showToast(`✏️ 已改名為「${name}」`, 'ok');
+}
+function overwriteCruiseRoute(id) {
+  const r = _findCruiseRoute(id);
+  if (!r) return;
+  if (wpData.length < 2) { showToast('地圖上至少要有 2 個航點才能覆蓋', 'err'); return; }
+  if (!confirm(`用目前的 ${wpData.length} 個航點（速度 ${state.speed} km/h${state.loop ? '、循環' : ''}）覆蓋「${r.name}」？原本的航點會被取代。`)) return;
+  Object.assign(r, _cruiseSnapshot());
+  _saveCruiseRoutes();
+  renderCruiseRouteList();
+  showToast(`⬆️ 「${r.name}」已更新為目前航點`, 'ok');
 }
 function deleteCruiseRoute(id) {
-  const r = _cruiseRoutes.find(r => r.id === id);
+  const r = _findCruiseRoute(id);
   if (!r || !confirm(`確定刪除路線「${r.name}」？`)) return;
-  _cruiseRoutes = _cruiseRoutes.filter(r => r.id !== id);
+  _cruiseRoutes = _cruiseRoutes.filter(x => x !== r);
+  if (String(_mapSettings.lastCruiseRouteId) === String(r.id)) {
+    _mapSettings.lastCruiseRouteId = null;
+    saveUserData('mapSettings');
+  }
   _saveCruiseRoutes();
   renderCruiseRouteList();
   showToast('已刪除', 'ok');
@@ -1778,10 +2246,11 @@ function showToast(msg, type) {
 // ── Timezone lookup with cache (Open-Meteo, no API key required) ────────────
 const _tzCache = {};
 let _tzTimer   = null;
+let _currentTzKey = null, _tzQueryVersion = 0;
 
 async function lookupTz(lat, lon) {
   const key = `${lat.toFixed(1)},${lon.toFixed(1)}`;
-  if (_tzCache[key]) return _tzCache[key];
+  if (_tzCache[key]) return _buildTzResult(key, _tzCache[key].tz, _tzCache[key].offsetH);
 
   // Primary: Open-Meteo (free, no API key, CORS open)
   try {
@@ -1800,40 +2269,53 @@ async function lookupTz(lat, lon) {
 
   // Fallback: longitude estimate (±15° per hour, ~±30 min error)
   const offsetH  = Math.round(lon / 15);
-  const now      = new Date();
-  const utcMs    = now.getTime() + now.getTimezoneOffset() * 60000;
-  const localD   = new Date(utcMs + offsetH * 3600000);
-  const twD      = new Date(utcMs + 8 * 3600000);
-  const localTime = `${String(localD.getUTCHours()).padStart(2,'0')}:${String(localD.getUTCMinutes()).padStart(2,'0')}`;
-  const crossDay  = localD.toDateString() !== twD.toDateString();
-  const result    = { tz: `UTC${offsetH >= 0 ? '+' : ''}${offsetH}(估算)`, localTime, crossDay };
-  _tzCache[key]   = result;
-  return result;
+  return _buildTzResult(key, `UTC${offsetH >= 0 ? '+' : ''}${offsetH}(估算)`, offsetH);
 }
 
-function _buildTzResult(key, tz) {
+function _buildTzResult(key, tz, offsetH) {
+  _tzCache[key] = { tz, offsetH };
   const now       = new Date();
+  if (Number.isFinite(offsetH)) {
+    const localD = new Date(now.getTime() + offsetH * 3600000);
+    const twD = new Date(now.getTime() + 8 * 3600000);
+    return { tz,
+      localTime: `${String(localD.getUTCHours()).padStart(2,'0')}:${String(localD.getUTCMinutes()).padStart(2,'0')}`,
+      crossDay: localD.toISOString().slice(0, 10) !== twD.toISOString().slice(0, 10) };
+  }
   const localTime = now.toLocaleTimeString('zh-TW', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
   const localDay  = now.toLocaleDateString('en-CA', { timeZone: tz });
   const twDay     = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' });
   const crossDay  = localDay !== twDay;
   const result    = { tz, localTime, crossDay };
-  _tzCache[key]   = result;
   return result;
 }
 
 // Update current coord timezone info with debounce
 function scheduleTzUpdate(lat, lon) {
+  const key = `${lat.toFixed(1)},${lon.toFixed(1)}`;
+  if (key === _currentTzKey) return;
+  _currentTzKey = key;
+  const version = ++_tzQueryVersion;
   if (_tzTimer) clearTimeout(_tzTimer);
+  if (_tzCache[key]) { renderCurrentTime(); return; }
   document.getElementById('disp-time').textContent     = '查詢中...';
   document.getElementById('disp-crossday').textContent = '—';
   _tzTimer = setTimeout(async () => {
     const info = await lookupTz(lat, lon);
+    if (version !== _tzQueryVersion) return;
     if (!info) {
       document.getElementById('disp-time').textContent     = '—';
       document.getElementById('disp-crossday').textContent = '—';
       return;
     }
+    renderCurrentTime();
+  }, 800);
+}
+
+function renderCurrentTime() {
+    const cached = _tzCache[_currentTzKey];
+    if (!cached) return;
+    const info = _buildTzResult(_currentTzKey, cached.tz, cached.offsetH);
     document.getElementById('disp-time').textContent = info.localTime;
     const cdEl = document.getElementById('disp-crossday');
     if (info.crossDay) {
@@ -1843,7 +2325,6 @@ function scheduleTzUpdate(lat, lon) {
       cdEl.textContent  = '否';
       cdEl.style.color  = 'var(--success)';
     }
-  }, 800);
 }
 
 // Copy current coordinates to clipboard (format: lat, lon  — comma + space)
@@ -2004,7 +2485,7 @@ function _normalizeCountry(raw) {
   return s;
 }
 
-// ── Favorites management (persisted in localStorage) ──────────────
+// ── Favorites management（存到 Launcher 檔案，localStorage 為離線快取）──
 const FAV_KEY = 'gps_favorites_v1';
 let _favs = [];
 let _favTimeInterval = null;
@@ -2088,7 +2569,7 @@ function updateFavTimes() {
     const key = `${f.lat.toFixed(1)},${f.lon.toFixed(1)}`;
     const cached = _tzCache[key];
     if (!cached || !cached.tz) return;
-    const updated = _buildTzResult(key, cached.tz);
+    const updated = _buildTzResult(key, cached.tz, cached.offsetH);
     const el = document.getElementById(`ft-${f.id}`);
     if (!el) return;
     const cd = updated.crossDay ? ' <span class="sr-cd">跨日</span>' : '';
@@ -2096,20 +2577,522 @@ function updateFavTimes() {
   });
 }
 
+// 只讀瀏覽器快取到記憶體（正式資料由 initUserData 從 Launcher 取得）
 function loadFavorites() {
-  try { _favs = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch(e) { _favs = []; }
+  const list = _lsJson(FAV_KEY, []);
+  _favs = Array.isArray(list) ? list : [];
   // One-time migration: normalize any country names stored before this fix
+  if (_normalizeFavCountries()) _lsSet(FAV_KEY, JSON.stringify(_favs));
+}
+function _normalizeFavCountries() {
   let dirty = false;
   _favs.forEach(f => {
-    if (!f.country) return;
+    if (!f || !f.country) return;
     const clean = _normalizeCountry(f.country);
     if (clean !== f.country) { f.country = clean; dirty = true; }
   });
-  if (dirty) localStorage.setItem(FAV_KEY, JSON.stringify(_favs));
+  return dirty;
 }
 function saveFavorites() {
-  localStorage.setItem(FAV_KEY, JSON.stringify(_favs));
+  const saving = saveUserData('favorites');
   document.getElementById('fav-count').textContent = _favs.length;
+  return saving;
+}
+
+// ── 使用者資料層（最愛／巡航路線／地圖設定）──────────────────────────
+// 正式資料存在 Launcher 的電腦檔案（GET/POST ${META}/userdata）；localStorage 只當離線快取。
+// _udState：idle（尚未啟動）→ loading（向 Launcher 讀取中）→ synced（已對齊，存檔直接送出）
+//           或 offline（連不上／舊版 Launcher：只寫快取並記下 dirty，恢復時再補送）。
+// 防誤洗：讀取失敗時絕不送出任何資料；只有使用者改過的區塊（dirty）或第一次搬家才會上傳。
+const MAPSET_KEY    = 'gps_map_settings_v1';
+const UD_DIRTY_KEY  = 'gps_userdata_dirty';    // 尚未同步到 Launcher 的區塊，例：["favorites"]
+const UD_SYNCED_KEY = 'gps_userdata_synced';   // 這個瀏覽器曾和 Launcher 對齊過
+const UD_SECTIONS   = ['favorites', 'cruiseRoutes', 'mapSettings'];
+const UD_RETRY_MS   = 60000;                   // 舊版 Launcher 一直在線時，最多每分鐘重試一次
+let _mapSettings = {};
+let _udState = 'idle', _udSyncing = null, _udFlushing = null;
+let _udDirtySet = new Set(), _udInFlight = new Set();
+const _udPending = new Set(), _udWarned = new Set();
+let _udLoadError = null;                       // GET 時 Launcher 回報的錯誤（如資料檔損壞）；null＝單純連不上／舊版
+let _udLauncherSeenDown = false, _udLastAttempt = 0;
+
+function _lsGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function _lsSet(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+function _lsDel(key) { try { localStorage.removeItem(key); } catch (e) {} }
+function _lsJson(key, fallback) {
+  try { const value = JSON.parse(_lsGet(key)); return value == null ? fallback : value; } catch (e) { return fallback; }
+}
+function _isPlainObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+
+function _udReadDirty() {
+  const raw = _lsGet(UD_DIRTY_KEY);
+  if (!raw) return new Set();
+  let list = null;
+  try { list = JSON.parse(raw); } catch (e) {}
+  // 看不懂的舊格式（例如 "1"）→ 全部視為未同步，寧可多送也不漏
+  return new Set(Array.isArray(list) ? list.filter(s => UD_SECTIONS.includes(s)) : UD_SECTIONS);
+}
+function _udSaveDirty() {
+  if (_udDirtySet.size) _lsSet(UD_DIRTY_KEY, JSON.stringify([..._udDirtySet]));
+  else _lsDel(UD_DIRTY_KEY);
+}
+function _udMarkDirty(sections) { sections.forEach(s => _udDirtySet.add(s)); _udSaveDirty(); }
+function _udClearDirty(sections) { sections.forEach(s => _udDirtySet.delete(s)); _udSaveDirty(); }
+
+function _udReadCache() {
+  loadFavorites();
+  loadCruiseRoutes();
+  const ms = _lsJson(MAPSET_KEY, {});
+  _mapSettings = _isPlainObject(ms) ? ms : {};
+  _udDirtySet = _udReadDirty();
+}
+function _udWriteCache(sections) {
+  if (sections.includes('favorites'))    _lsSet(FAV_KEY, JSON.stringify(_favs));
+  if (sections.includes('cruiseRoutes')) _lsSet(CRUISE_KEY, JSON.stringify(_cruiseRoutes));
+  if (sections.includes('mapSettings'))  _lsSet(MAPSET_KEY, JSON.stringify(_mapSettings));
+}
+function _udBody(sections) {
+  const source = { favorites: _favs, cruiseRoutes: _cruiseRoutes, mapSettings: _mapSettings };
+  const body = {};
+  sections.forEach(s => { body[s] = source[s]; });
+  return body;
+}
+// 資料變動後更新畫面（不觸發存檔）
+function _udRefreshUI() {
+  const count = document.getElementById('fav-count');
+  if (count) count.textContent = _favs.length;
+  if (state.mode === 'fav') renderFavorites();
+  renderCruiseFavSelect();
+  renderCruiseRouteList();
+  _applySavedBaseMap();
+}
+
+// 失敗時丟出帶 kind 的錯誤：network＝連不上／逾時、old＝404 舊版 Launcher、
+// server＝Launcher 有回應但回報錯誤（400/403/413/415/500…，訊息取自 JSON 的 error）
+function _udError(kind, message) { return Object.assign(new Error(message), { kind }); }
+async function _udRequest(method, body) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    let res;
+    try {
+      res = await fetch(`${META}/userdata`, method === 'GET'
+        ? { cache: 'no-store', signal: controller.signal }
+        : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal });
+    } catch (e) {
+      throw _udError('network', '無法連線 Launcher');
+    }
+    if (res.status === 404) throw _udError('old', '舊版 Launcher 不支援資料存檔');
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok || !data || data.ok !== true) {
+      throw _udError('server', (data && typeof data.error === 'string' && data.error) || `Launcher 回應錯誤（HTTP ${res.status}）`);
+    }
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+// 檢查 GET 回應；格式不對就當讀取失敗（不覆寫本地，也不上傳）
+function _udParseRemote(r) {
+  if (!r || typeof r.exists !== 'boolean') return null;
+  if (!r.exists) return { exists: false };
+  const d = r.data;
+  if (!d || !Array.isArray(d.favorites) || !Array.isArray(d.cruiseRoutes)) return null;
+  return { exists: true, favorites: d.favorites, cruiseRoutes: d.cruiseRoutes,
+           mapSettings: _isPlainObject(d.mapSettings) ? d.mapSettings : {} };
+}
+// 第一次對齊時的保守合併：以 Launcher 為主、補上本機才有的項目（同 id 用本機版本），不刪任何東西
+function _udMergeById(remoteList, localList) {
+  const localById = new Map(localList.map(x => [String(x && x.id), x]));
+  const remoteIds = new Set(remoteList.map(x => String(x && x.id)));
+  return remoteList.map(x => localById.get(String(x && x.id)) || x)
+    .concat(localList.filter(x => !remoteIds.has(String(x && x.id))));
+}
+
+// 同一則提示在同一次開頁只出現一次，避免洗版
+function _udWarnOnce(message) {
+  if (_udWarned.has(message)) return;
+  _udWarned.add(message);
+  showToast(message, 'err');
+}
+function _udWarnOffline() {
+  _udWarnOnce(_udLoadError
+    ? `讀不到電腦裡的資料檔：${_udLoadError}；資料暫存在瀏覽器`
+    : 'Launcher 未連線（或版本較舊），資料暫存在瀏覽器，連上後會自動同步');
+}
+
+// 依序送出待存區塊（同一時間只有一個 POST，送出的永遠是最新的記憶體內容）。
+// 先前失敗、仍是 dirty 的區塊會一併補送。
+function _udQueuePush(sections) {
+  sections.forEach(s => _udPending.add(s));
+  _udDirtySet.forEach(s => { if (!_udInFlight.has(s)) _udPending.add(s); });
+  if (!_udFlushing) _udFlushing = _udFlushLoop().finally(() => { _udFlushing = null; });
+  return _udFlushing;
+}
+async function _udFlushLoop() {
+  while (_udPending.size) {
+    if (_udState !== 'synced') { _udPending.clear(); return false; }   // 已記 dirty，恢復時補送
+    const sections = [..._udPending];
+    _udPending.clear();
+    const body = _udBody(sections);
+    if (!Object.keys(body).length) continue;                           // 不送空的 {} 更新
+    _udInFlight = new Set(sections);
+    try {
+      await _udRequest('POST', body);
+      _udClearDirty(sections.filter(s => !_udPending.has(s)));
+    } catch (e) {
+      _udPending.clear();
+      if (e.kind === 'server') {
+        // Launcher 在線但寫檔失敗（例如 500）：保留 dirty，下次存檔或重新開頁再補送
+        showToast(`存到電腦檔案失敗：${e.message}（資料暫存在瀏覽器）`, 'err');
+      } else {
+        _udState = 'offline';
+        _udWarnOffline();
+      }
+      return false;
+    } finally {
+      _udInFlight = new Set();
+    }
+  }
+  return true;
+}
+
+// 存檔入口：先寫快取並記 dirty，再送 Launcher。回傳 Promise<boolean>：true＝已存到電腦檔案。
+function saveUserData(...sections) {
+  sections = sections.filter(s => UD_SECTIONS.includes(s));
+  if (!sections.length) return Promise.resolve(false);
+  _udWriteCache(sections);
+  _udMarkDirty(sections);
+  if (_udState === 'synced') return _udQueuePush(sections);
+  if (_udState === 'offline') _udWarnOffline();
+  return Promise.resolve(false);   // loading：讀取完成時會一併補送
+}
+
+// 向 Launcher 讀取並對齊（啟動時、以及離線後 Launcher 恢復時）
+function _udSync() {
+  if (!_udSyncing) _udSyncing = _udReconcile().finally(() => { _udSyncing = null; });
+  return _udSyncing;
+}
+async function _udReconcile() {
+  _udLastAttempt = Date.now();
+  _udLauncherSeenDown = false;
+  _udState = 'loading';
+  let remote;
+  try {
+    remote = _udParseRemote(await _udRequest('GET'));
+    if (!remote) throw _udError('server', 'Launcher 回傳的資料格式不符');
+  } catch (e) {
+    // 防誤洗：讀不到（含 500 檔案損壞）就什麼都不送；只有 404 才代表舊版 Launcher
+    _udState = 'offline';
+    _udLoadError = e.kind === 'server' ? e.message : null;
+    if (_udLoadError) _udWarnOffline();
+    return false;
+  }
+  _udLoadError = null;
+  const dirty = new Set(_udDirtySet);
+  let push = [], migrated = false;
+  if (!remote.exists) {
+    // Launcher 從沒存過 → 把瀏覽器裡的舊資料搬過去（全空就不送）
+    migrated = !!(_favs.length || _cruiseRoutes.length);
+    if (migrated || dirty.size) push = UD_SECTIONS.slice();
+  } else {
+    const firstTime = !_lsGet(UD_SYNCED_KEY);
+    const remoteData = { favorites: remote.favorites, cruiseRoutes: remote.cruiseRoutes, mapSettings: remote.mapSettings };
+    if (!dirty.has('favorites')) _favs = remoteData.favorites;
+    else if (firstTime) _favs = _udMergeById(remoteData.favorites, _favs);
+    if (!dirty.has('cruiseRoutes')) _cruiseRoutes = remoteData.cruiseRoutes;
+    else if (firstTime) _cruiseRoutes = _udMergeById(remoteData.cruiseRoutes, _cruiseRoutes);
+    if (!dirty.has('mapSettings')) _mapSettings = remoteData.mapSettings;
+    else if (firstTime) _mapSettings = { ...remoteData.mapSettings, ..._mapSettings };
+    _normalizeFavCountries();
+    _udWriteCache(UD_SECTIONS);      // 以 Launcher 為準更新快取
+    push = [...dirty];               // 離線期間改過的區塊 → 推上去
+  }
+  _udState = 'synced';
+  _udRefreshUI();
+  if (push.length) {
+    _udMarkDirty(push);
+    if (!(await _udQueuePush(push))) return false;
+    if (migrated) showToast('已把瀏覽器裡的資料搬到電腦檔案', 'ok');
+    else if (dirty.size) showToast('已把離線期間的變更同步到電腦檔案', 'ok');
+  }
+  _lsSet(UD_SYNCED_KEY, new Date().toISOString());
+  return true;
+}
+
+// 啟動：先用快取顯示，再 await Launcher 的正式資料
+async function initUserData() {
+  _udReadCache();
+  _udRefreshUI();
+  if (typeof window.addEventListener === 'function') window.addEventListener('storage', _udOnStorage);
+  return _udSync();
+}
+// 同一瀏覽器的另一個分頁改了快取 → 同步到這個分頁的記憶體（由那個分頁負責上傳）
+function _udOnStorage(e) {
+  if (e.key === FAV_KEY) loadFavorites();
+  else if (e.key === CRUISE_KEY) loadCruiseRoutes();
+  else if (e.key === MAPSET_KEY) { const ms = _lsJson(MAPSET_KEY, {}); _mapSettings = _isPlainObject(ms) ? ms : {}; }
+  else return;
+  _udRefreshUI();
+}
+// 搭現有裝置輪詢：Launcher 回應了 → 若先前離線就重新對齊（舊版 Launcher 時最多每分鐘一次）
+function _udOnLauncherUp() {
+  if (_udState !== 'offline' || _udSyncing) return;
+  if (!_udLauncherSeenDown && Date.now() - _udLastAttempt < UD_RETRY_MS) return;
+  _udSync();
+}
+function _udOnLauncherDown() { _udLauncherSeenDown = true; }
+
+// ── 備份 / 還原（最愛 + 巡航路線 + 地圖設定）────────────────────
+// 匯出目前記憶體裡的資料（不含 Google 金鑰）；匯入後寫回 Launcher。
+// 仍可讀舊版 _ver:1 備份檔（內容是 localStorage 的 JSON 字串）。
+function buildBackupData() {
+  const { googleApiKey, ...mapSettings } = _mapSettings || {};
+  return {
+    _type: 'gps_map_backup', _ver: 2, exportedAt: new Date().toISOString(),
+    favorites: _favs, cruiseRoutes: _cruiseRoutes, mapSettings,
+  };
+}
+function exportBackup() {
+  const data = buildBackupData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'gps_backup.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  showToast(`💾 已匯出：最愛 ${data.favorites.length} 筆、巡航 ${data.cruiseRoutes.length} 條`, 'ok');
+}
+// 回傳 null＝不是備份檔；否則各區塊為陣列／物件或 null（檔案裡沒有該區塊）
+function parseBackupData(data) {
+  if (!data || data._type !== 'gps_map_backup') return null;
+  const list = (value, legacy) => {
+    if (Array.isArray(value)) return value;
+    if (typeof legacy !== 'string') return null;
+    try { const parsed = JSON.parse(legacy); return Array.isArray(parsed) ? parsed : null; } catch (e) { return null; }
+  };
+  return {
+    favorites:    list(data.favorites, data.gps_favorites_v1),
+    cruiseRoutes: list(data.cruiseRoutes, data.gps_cruise_routes_v1),
+    mapSettings:  _isPlainObject(data.mapSettings) ? data.mapSettings : null,
+  };
+}
+async function applyBackupData(backup) {
+  const sections = [];
+  if (backup.favorites) { _favs = backup.favorites; _selectedFavId = null; _normalizeFavCountries(); sections.push('favorites'); }
+  if (backup.cruiseRoutes) { _cruiseRoutes = backup.cruiseRoutes; sections.push('cruiseRoutes'); }
+  if (backup.mapSettings) {
+    const { googleApiKey, ...rest } = backup.mapSettings;   // 金鑰不從備份檔帶入，保留本機原有的
+    _mapSettings = { ...rest, googleApiKey: _mapSettings.googleApiKey || '' };
+    sections.push('mapSettings');
+  }
+  const saving = saveUserData(...sections);
+  _udRefreshUI();
+  return saving;
+}
+function importBackup(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    input.value = '';
+    let backup;
+    try { backup = parseBackupData(JSON.parse(reader.result)); }
+    catch (e) { showToast('❌ 匯入失敗：檔案格式錯誤', 'err'); return; }
+    if (!backup) { showToast('❌ 這不是備份檔', 'err'); return; }
+    if (!backup.favorites && !backup.cruiseRoutes) { showToast('❌ 備份檔裡沒有最愛或巡航資料', 'err'); return; }
+    if ((_favs.length || _cruiseRoutes.length)
+        && !confirm('目前已有最愛/巡航資料，匯入會「覆蓋」現有資料，確定要繼續嗎？')) return;
+    const saved = await applyBackupData(backup);
+    const favN = backup.favorites ? backup.favorites.length : 0, cruN = backup.cruiseRoutes ? backup.cruiseRoutes.length : 0;
+    showToast(saved ? `✅ 已匯入：最愛 ${favN} 筆、巡航 ${cruN} 條，已存到電腦檔案`
+                    : `✅ 已匯入：最愛 ${favN} 筆、巡航 ${cruN} 條（暫存在瀏覽器，Launcher 連上後自動同步）`, 'ok');
+  };
+  reader.readAsText(file);
+}
+
+// ── 底圖切換（OpenStreetMap／Google）────────────────────────────
+// 選 OSM 時完全不連 Google；Google Maps API 只在使用者選 Google 時才動態載入一次。
+const BASEMAPS = {
+  'osm':            { label: 'OpenStreetMap' },
+  'google-roadmap': { label: 'Google 地圖', type: 'roadmap' },
+  'google-hybrid':  { label: 'Google 衛星', type: 'hybrid' },
+};
+const _baseLayers = {};
+let _baseLayer = null, _baseMapShown = 'osm', _baseMapWanted = 'osm', _baseMapSeq = 0;
+let _gmPromise = null, _gmKeyUsed = null, _gmAuthFailed = false, _gkeyPendingProvider = null;
+
+function _getBaseLayer(provider) {
+  if (!_baseLayers[provider]) {
+    _baseLayers[provider] = provider === 'osm'
+      ? L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors', maxZoom: 19
+        })
+      : L.gridLayer.googleMutant({ type: BASEMAPS[provider].type, maxZoom: 21 });   // Google logo／版權由外掛保留顯示
+  }
+  return _baseLayers[provider];
+}
+function _addBaseMapControl() {
+  const BaseMapControl = L.Control.extend({
+    options: { position: 'topright' },
+    onAdd() {
+      const box = L.DomUtil.create('div', 'leaflet-control basemap-ctl');
+      box.innerHTML = `<select id="basemap-select" aria-label="底圖" title="切換底圖" onchange="setBaseMap(this.value)">
+          ${Object.entries(BASEMAPS).map(([value, b]) => `<option value="${value}">${b.label}</option>`).join('')}
+        </select><button type="button" title="設定 Google 金鑰" aria-label="設定 Google 金鑰" onclick="openGoogleKeyModal()">⚙️</button>`;
+      L.DomEvent.disableClickPropagation(box);    // 點控制項不會在地圖上加航點
+      L.DomEvent.disableScrollPropagation(box);
+      return box;
+    },
+  });
+  new BaseMapControl().addTo(map);
+}
+function _syncBaseMapSelect() {
+  const sel = document.getElementById('basemap-select');
+  if (sel) sel.value = _baseMapWanted;
+}
+function _showBaseLayer(provider) {
+  _baseMapWanted = provider;
+  if (map && (provider !== _baseMapShown || !_baseLayer)) {
+    const layer = _getBaseLayer(provider);
+    layer.addTo(map);                    // 只換底圖；中心、縮放、標記、巡航線都不動
+    if (_baseLayer && _baseLayer !== layer) map.removeLayer(_baseLayer);
+    _baseLayer = layer;
+    _baseMapShown = provider;
+  }
+  _syncBaseMapSelect();
+}
+function _saveMapProvider(provider) {
+  if (_mapSettings.provider === provider) return;
+  _mapSettings.provider = provider;
+  saveUserData('mapSettings');
+}
+function _googleMutantReady() {
+  return typeof L !== 'undefined' && !!L.gridLayer && typeof L.gridLayer.googleMutant === 'function';
+}
+function _loadGoogleMaps(key) {
+  if (_gmPromise) return _gmPromise;
+  _gmKeyUsed = key;
+  _gmPromise = new Promise((resolve, reject) => {
+    if (window.google && window.google.maps && window.google.maps.Map) { resolve(); return; }
+    const script = document.createElement('script');
+    let timer = null;
+    const finish = err => {
+      clearTimeout(timer);
+      window.__gpsGoogleMapsReady = () => {};
+      if (err) { script.remove(); reject(err); } else resolve();
+    };
+    timer = setTimeout(() => finish(new Error('Google 地圖載入逾時')), 20000);
+    window.__gpsGoogleMapsReady = () => {
+      const maps = window.google && window.google.maps;
+      Promise.resolve(maps && typeof maps.importLibrary === 'function' ? maps.importLibrary('maps') : null)
+        .then(() => finish(), finish);
+    };
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&loading=async&callback=__gpsGoogleMapsReady`;
+    script.async = true;
+    script.onerror = () => finish(new Error('Google 地圖腳本載入失敗'));
+    document.head.appendChild(script);
+  });
+  _gmPromise.catch(() => { _gmPromise = null; _gmKeyUsed = null; });   // 網路失敗可再試
+  return _gmPromise;
+}
+// Google 在金鑰無效／未啟用 API 時會呼叫這個全域函式
+window.gm_authFailure = () => {
+  _gmAuthFailed = true;
+  ++_baseMapSeq;
+  _showBaseLayer('osm');
+  _saveMapProvider('osm');              // 記成 OSM，下次開頁不會再拿壞金鑰去載入
+  showToast('Google 金鑰無效或未啟用 Maps JavaScript API', 'err');
+};
+
+// interactive：使用者主動切換（缺金鑰時打開設定框、成功後記住選擇）；false＝依存檔自動套用
+async function setBaseMap(provider, { interactive = true } = {}) {
+  if (!BASEMAPS[provider]) provider = 'osm';
+  const seq = ++_baseMapSeq;
+  if (provider === 'osm') {
+    _showBaseLayer('osm');
+    if (interactive) _saveMapProvider('osm');
+    return true;
+  }
+  const stay = message => {               // 維持目前顯示的底圖
+    if (seq === _baseMapSeq) { _baseMapWanted = _baseMapShown; _syncBaseMapSelect(); }
+    if (message && interactive) showToast(message, 'err');
+    return false;
+  };
+  const key = String(_mapSettings.googleApiKey || '').trim();
+  if (!key) {
+    stay();
+    if (interactive) openGoogleKeyModal('要使用 Google 底圖，請先貼上你的 Google Maps API 金鑰。', provider);
+    return false;
+  }
+  if (!_googleMutantReady()) return stay('Google 圖層元件沒有載入成功，請檢查網路後重新整理頁面');
+  if (_gmAuthFailed) return stay('Google 金鑰無效或未啟用 Maps JavaScript API');
+  if (_gmKeyUsed && _gmKeyUsed !== key) return stay('新的 Google 金鑰要重新整理頁面後才會生效');
+  _baseMapWanted = provider;
+  _syncBaseMapSelect();
+  try {
+    await _loadGoogleMaps(key);
+  } catch (e) {
+    if (seq !== _baseMapSeq) return false;
+    ++_baseMapSeq;
+    _showBaseLayer('osm');
+    showToast('Google 地圖載入失敗，已切回 OpenStreetMap', 'err');
+    return false;
+  }
+  if (seq !== _baseMapSeq || _gmAuthFailed) return false;
+  _showBaseLayer(provider);
+  if (interactive) _saveMapProvider(provider);
+  return true;
+}
+// 依存檔的 provider 自動套用（啟動、Launcher 資料到達、匯入、其他分頁變更）
+function _applySavedBaseMap() {
+  if (!map) return;
+  const provider = BASEMAPS[_mapSettings.provider] ? _mapSettings.provider : 'osm';
+  if (provider !== _baseMapWanted) setBaseMap(provider, { interactive: false });
+}
+
+function openGoogleKeyModal(message, pendingProvider) {
+  _gkeyPendingProvider = pendingProvider || null;
+  document.getElementById('gkey-msg').textContent = message || '貼上你自己的 Google Maps API 金鑰，就能切換成 Google 地圖或衛星圖。';
+  const input = document.getElementById('gkey-input');
+  input.value = _mapSettings.googleApiKey || '';
+  input.type = 'password';
+  document.getElementById('gkey-toggle').textContent = '顯示';
+  document.getElementById('gkey-modal').classList.remove('hidden');
+  requestAnimationFrame(() => input.focus());
+}
+function closeGoogleKeyModal() {
+  _gkeyPendingProvider = null;
+  document.getElementById('gkey-modal').classList.add('hidden');
+}
+function toggleGoogleKeyVisible() {
+  const input = document.getElementById('gkey-input');
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  document.getElementById('gkey-toggle').textContent = show ? '隱藏' : '顯示';
+}
+function saveGoogleKey() {
+  const key = document.getElementById('gkey-input').value.trim();
+  if (!key) { showToast('請貼上金鑰；要移除金鑰請按「清除」', 'err'); return; }
+  const pending = _gkeyPendingProvider;
+  _mapSettings.googleApiKey = key;
+  saveUserData('mapSettings');
+  closeGoogleKeyModal();
+  if (_gmKeyUsed && _gmKeyUsed !== key) { showToast('金鑰已儲存；請重新整理頁面讓新金鑰生效', 'ok'); return; }
+  showToast('🔑 Google 金鑰已儲存', 'ok');
+  if (pending) setBaseMap(pending);
+}
+function clearGoogleKey() {
+  if (!_mapSettings.googleApiKey) { closeGoogleKeyModal(); return; }
+  if (!confirm('確定清除 Google 金鑰？底圖會切回 OpenStreetMap。')) return;
+  _mapSettings.googleApiKey = '';       // 用空字串而非刪除，確保 Launcher 端也會被清掉
+  _mapSettings.provider = 'osm';
+  ++_baseMapSeq;
+  _showBaseLayer('osm');
+  saveUserData('mapSettings');
+  closeGoogleKeyModal();
+  showToast('已清除 Google 金鑰', 'ok');
 }
 
 function addFavorite(lat, lon, name, country) {
@@ -2281,7 +3264,12 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeLoadCruiseModal();
     return;
   }
-  if (e.target.tagName === 'INPUT') return;
+  if (!document.getElementById('gkey-modal').classList.contains('hidden')) {
+    if (e.key === 'Escape') closeGoogleKeyModal();
+    return;
+  }
+  // 在輸入框或下拉選單（巡航路線、底圖）裡按方向鍵時，不可移動手機定位
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
   const k = { ArrowUp:'N',ArrowDown:'S',ArrowLeft:'W',ArrowRight:'E',
     w:'N',s:'S',a:'W',d:'E',q:'NW',e:'NE',z:'SW',c:'SE' }[e.key];
   if (k) pan(k);

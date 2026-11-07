@@ -1,6 +1,6 @@
 # 📍 iPhone GPS Controller
 
-從 Mac 透過 USB 即時模擬 iPhone GPS 定位的工具。  
+從 Mac 透過 USB 或已配對的 Wi-Fi 連線即時模擬 iPhone GPS 定位的工具。
 `gps_launcher.py` 負責偵測裝置並提供 HTTP API；  
 `gps_map.html` 提供互動式 Leaflet 地圖介面來控制 GPS。
 
@@ -18,7 +18,11 @@
 - **多裝置同步** — 同時操控多支 iPhone。新增 🔗 *同步全部裝置* 卡片，一個動作（設定 / 清除 / 巡航）即可同步廣播到所有已連線手機。
 - **巡航強化** — 暫停 / 繼續（即使中途把 GPS 移到別處，進度仍保留）、儲存 / 讀取命名路線、一次批次貼上多個座標。
 - **最愛全面翻新** — 手動加入、自動帶出國家名稱（繁體中文）、即時當地時間、置頂工具列免滑動排序、可修改名稱與座標。
-- **後端大幅強化** — 拔插手機後可自動重連（不必重啟 Launcher）、只認 USB 裝置、tunnel 以行程群組完整清除、斷線自我修復、檔案日誌。
+- **後端大幅強化** — 拔插手機後可自動重連（不必重啟 Launcher）、可選 USB／Wi-Fi／自動模式、tunnel 以行程群組完整清除、斷線自我修復、檔案日誌。
+- **資料永久保存** — 最愛、巡航路線、底圖設定改存在 Launcher 旁的 `user_data.json`，重新整理、關閉瀏覽器、重開機都不會消失；舊版存在瀏覽器裡的資料會在第一次連上新版時自動搬過去。
+- **斷線手機自動歸隊** — 多機巡航中某支手機斷線，重新接上後會自動加回巡航並立即跳到目前巡航位置，不必停止重開（不增加任何背景輪詢）。
+- **巡航路線快速切換** — 巡航面板新增「⭐ 我的巡航路線」下拉選單；已存路線可改名、用目前航點覆蓋、刪除。
+- **可選 Google 地圖** — 底圖可在 OpenStreetMap／Google 地圖／Google 衛星之間切換（需自備 Google Maps API 金鑰），只有選 Google 時才會連線 Google。
 
 ---
 
@@ -62,7 +66,7 @@
 | **作業系統** | macOS（建立 tunnel 需 `sudo`） |
 | **Python** | 3.8 以上 |
 | **iPhone iOS** | iOS 16 以上（iOS 17+ 需 RSD tunnel + 開發者模式） |
-| **連線** | USB（Lightning 或 USB-C） |
+| **連線** | USB（Lightning 或 USB-C），或已配對且與 Mac 在同一區域網路的 Wi-Fi |
 | **瀏覽器** | Chrome / Firefox / Safari（需支援 Clipboard API） |
 | **網路** | 後端預設僅限本機；搜尋 / 時區需連網 |
 
@@ -89,13 +93,23 @@ pip install aiohttp pymobiledevice3
 2. iPhone 跳出「信任這部電腦？」時點 **信任**
 3. 確認 Mac 的 `usbmuxd` 正在執行（通常會自動啟動）
 
+**Wi-Fi 首次設定：** 先用 USB 完成上述信任與配對，並在 iPhone「設定 → 隱私權與安全性」啟用「開發者模式」（Developer Mode），依提示重新啟動並確認。於 Finder 選取手機，在「一般」勾選「在 Wi-Fi 上顯示此 iPhone」並套用；讓 Mac 與 iPhone 連上同一區域網路，再於地圖選取 Wi-Fi 或自動模式。裝置卡顯示 Wi-Fi 且已連線後，再確認拔線後仍可操作。
+
+Launcher 初始模式為 **USB**；**Wi-Fi** 使用無線連線，**自動** 由後端選擇可用連線。裝置卡標示的是每支手機實際的連線方式。切換模式會中止不相容的連線與巡航；重新連上不會自動重播舊位置或巡航，請手動重新開始。若提示不支援連線模式，需重啟新版 Launcher。
+
+若要手動測試 tunnel，請先停止 Launcher 自動系統；測完關閉手動 tunnel 再啟動 Launcher，兩者不可重複開啟。睡眠及鎖屏下的連線穩定性仍待實機測試；不保證手機在 Finder 中消失時仍能連線。
+
 ### 3. 檔案結構
 
 ```
 iphone-gps-controller/
 ├── gps_launcher.py   ← 後端 Python 服務
-└── gps_map.html      ← 前端地圖介面
+├── gps_map.html      ← 前端地圖介面
+├── user_data.json    ← 你的最愛／巡航路線／底圖設定（執行後自動產生，已列入 .gitignore）
+└── user_data.json.prev ← 上一版資料的自動備份（存檔前保留一代）
 ```
+
+> `user_data.json` 含有你的私人位置與 Google 金鑰，已排除在 git 之外，請勿手動上傳。以 `sudo` 啟動時，檔案會自動改回你自己的帳號擁有、權限 600（只有你本人能讀寫）。
 
 ---
 
@@ -125,12 +139,13 @@ sudo python3 gps_launcher.py
 
 ### 步驟 2：開啟前端地圖
 
-直接用瀏覽器開啟 `gps_map.html`：
+**建議**：Launcher 啟動後，用瀏覽器開啟 **http://localhost:8090/**（Launcher 會直接提供地圖頁面）。
 
 ```bash
-open gps_map.html
-# 或拖曳到任意瀏覽器視窗
+open http://localhost:8090/
 ```
+
+也可以像舊版一樣直接開啟檔案（`open gps_map.html` 或拖曳到瀏覽器視窗），功能相同；但用網址開啟較穩定，且 Google 金鑰可以設定「只允許 http://localhost:8090/* 使用」，比較安全。
 
 ### 步驟 3：設定 GPS 位置
 
@@ -167,7 +182,7 @@ sudo python3 gps_launcher.py 8090 0.0.0.0      # 開放 API 到區網
 
 | 常數 | 說明 | 預設 |
 |------|------|------|
-| `SCAN_SEC` | USB 掃描間隔（秒） | `6` |
+| `SCAN_SEC` | 裝置掃描間隔（秒） | `6` |
 | `TUNNEL_TIMEOUT` | 單次 tunnel 建立逾時（秒） | `40` |
 | `TUNNEL_RETRIES` | tunnel 失敗重試次數 | `3` |
 | `TUNNEL_RETRY_SEC` | 重試間隔（秒） | `5` |
@@ -182,7 +197,7 @@ sudo python3 gps_launcher.py 8090 0.0.0.0      # 開放 API 到區網
 
 ```
 啟動
- └─ device_scanner（每 6 秒，只認 USB）
+ └─ device_scanner（每 6 秒，依連線模式掃描）
       ├─ 新裝置   → setup_device（等 8 秒 → 建 tunnel → gps_worker）
       └─ 裝置消失 → teardown_device（取消任務 → 殺 tunnel 群組 → 清除狀態）
                     （連續達 MISS_THRESHOLD 次才執行）
@@ -201,7 +216,7 @@ USB 掃描採用**三層備援**：
 2. CLI 子行程（`python -m pymobiledevice3 usbmux list`）
 3. 從 CLI 輸出以 regex 擷取 UDID（最後手段）
 
-只使用 **USB 連線**的裝置；Wi-Fi 配對的裝置會被忽略，避免去 tunnel 一支沒有實體插上的手機。
+預設 **USB** 模式只使用 USB 裝置；切換至 **Wi-Fi** 或 **自動** 才納入已配對的無線裝置。Wi-Fi 是 Mac 與手機間的連線方式，不需要將控制 API 開放至區域網路；前端仍連至 `http://localhost:8090`。
 
 ### 穩定性（拔插處理）
 
@@ -244,9 +259,15 @@ USB 掃描採用**三層備援**：
 
 ### 🔗 同步全部裝置
 
-當連接兩支以上 iPhone 時，裝置清單頂端會出現 **🔗 同步全部裝置** 卡片。選取它後，所有動作（設定位置、清除、巡航步進）都會**同步廣播到所有已連線裝置**。卡片會顯示連線數（例如 `2 / 2`）。
+當連接兩支以上 iPhone 時，裝置清單頂端會出現 **🔗 同步全部裝置** 卡片。選取它後，所有動作（設定位置、清除、巡航步進）只會**同步廣播到已連線且啟用控制的裝置**。卡片會分別顯示連線數與可控制台數。
+
+多機共用單一巡航路線；目前不支援每支手機各自播放不同路線。每張裝置卡會分別標示 USB 或 Wi-Fi。
 
 若只想控制單一裝置，改點該裝置卡片即可。
+
+每張手機卡的 **啟用控制** 開關可用鍵盤操作，儲存成功才更新；設定依手機 UDID 保存在 `device_preferences.json`，重連後仍保留。停用不刪除配對，也保留手機連線與開關，但停止對該手機的 GPS／巡航／步數控制；重新啟用不會自動重播舊位置或巡航。若儲存失敗，開關維持原狀；若已停用但手機清除模擬失敗，畫面會顯示警告，不能視為已恢復真實定位。舊 Launcher 缺少開關資料時，請重啟新版。
+
+已交給手機執行的捷徑可能無法撤回；停用控制也不保證 iOS 所有定位 App 都即時更新位置。
 
 ---
 
@@ -268,7 +289,11 @@ USB 掃描採用**三層備援**：
 
 > 在**巡航播放中**手動移動 GPS（點地圖、輸入、方向鍵、最愛）會自動暫停巡航，避免你的手動位置被下一步覆蓋。
 
-**儲存 / 讀取路線** — **💾 儲存路線** 把目前航點 + 速度 + 循環設定以名稱存到 `localStorage`；**📂 讀取路線** 列出已存路線可讀取或刪除。
+**斷線手機自動歸隊** — 多機巡航時，若其中一支手機斷線（拔線、Wi-Fi 中斷、暫時錯誤），重新連上後會自動加回這次巡航，並立刻收到「目前」的巡航位置（暫停中也會跳到暫停處）；不會重播舊指令。被你手動**停用控制**或**清除**的手機不會被自動拉回。若所有手機同時斷線（或單機巡航時那支斷線），巡航會自動停止，重新連上後需再按 ▶ 播放。
+
+**儲存 / 讀取路線** — **💾 儲存路線** 把目前航點 + 速度 + 循環設定以名稱存檔（存在 `user_data.json`）；名稱重複時會詢問要覆蓋原路線或另存新路線。**📂 讀取路線** 列出已存路線，每條可 **讀取**、**✏️ 改名**、**⬆️ 用目前航點覆蓋**、**🗑 刪除**。
+
+**⭐ 我的巡航路線（快速切換）** — 巡航面板的下拉選單列出所有已存路線，選一下就套用；會記住上次套用的路線。巡航進行中切換會先詢問，確認後停止目前巡航再套用。
 
 **匯出 GPX** — 下載 `cruise_route.gpx`（標準 GPX 1.1）。
 
@@ -276,7 +301,9 @@ USB 掃描採用**三層備援**：
 
 ### ⭐ 我的最愛
 
-儲存在瀏覽器 `localStorage`（key：`gps_favorites_v1`）；重新整理或重開瀏覽器都會保留。
+儲存在 Launcher 旁的 `user_data.json`；重新整理、關閉瀏覽器、重開機都會保留。瀏覽器只保留一份快取：Launcher 沒開或還是舊版時，新增／修改會先暫存在瀏覽器，等 Launcher 連上後自動同步（畫面會提示一次）。
+
+**匯出 / 匯入備份** — **💾 匯出備份** 下載 `gps_backup.json`（含最愛、巡航路線與底圖選擇，**不含** Google 金鑰）；換電腦時在新電腦按 **📥 匯入備份** 即可。舊版匯出的備份檔也能匯入。
 
 **新增方式**
 - **⭐ 加入目前位置** — 儲存目前座標（自行輸入名稱）。
@@ -303,9 +330,24 @@ USB 掃描採用**三層備援**：
 
 ---
 
+### 🗺 底圖切換（OpenStreetMap／Google）
+
+地圖右上角的選單可切換 **OpenStreetMap**（預設、免費）、**Google 地圖**、**Google 衛星**；選擇會被記住，下次開啟直接套用。搜尋與國家名稱反查仍使用 Nominatim（OpenStreetMap），不會產生 Google 費用。
+
+**設定 Google 金鑰** — 按選單旁的 ⚙️ 貼上你的 Google Maps API 金鑰並儲存（存在 `user_data.json`，匯出備份不會帶出）。沒填金鑰就選 Google 時會跳出設定框並維持 OpenStreetMap；金鑰無效或 Google 載入失敗會自動切回 OpenStreetMap。換新金鑰後請重新整理頁面。
+
+**費用與防超支**（以 2026 年 11 月 Google 官方定價為準）
+- 只有選 Google 底圖時才會載入 Google Maps JavaScript API；計費單位是「開一次頁面＝1 次 map load」，拖曳、縮放、巡航移動都不另計。
+- 每月前 10,000 次 map load 免費，超出約每 1,000 次 7 美元；個人使用通常落在免費額度內。
+- Google Cloud 專案需啟用帳單（綁卡），並啟用「Maps JavaScript API」。
+- 建議到 Google Cloud Console → **API 和服務 → Maps JavaScript API → 配額**，把每日 map load 上限設為 300：一個月最多約 9,300 次，保證不超過免費額度；到上限當天 Google 底圖會暫時無法顯示，不會扣款。
+- 建議在金鑰的「API 限制」只勾 Maps JavaScript API；若用 http://localhost:8090/ 開啟頁面，可再加「網站限制」`http://localhost:8090/*`。
+
+---
+
 ### 裝置管理
 
-- 每 6 秒掃描 USB，新裝置自動出現。
+- 每 6 秒依 USB／Wi-Fi／自動模式掃描，新裝置自動出現。
 - 斷線裝置會移除（有短暫防抖）；前端自動切換到下一台已連線裝置。
 - 狀態燈號：🟢 GPS 已連線 · 🟡 tunnel 完成、GPS 連線中 · 🔴 tunnel 建立中 / 失敗。
 
@@ -313,13 +355,25 @@ USB 掃描採用**三層備援**：
 
 ## HTTP API 參考
 
-後端監聽 `http://{HOST}:{PORT}`（預設 `127.0.0.1:8090`），CORS 全開。
+後端監聽 `http://{HOST}:{PORT}`（預設 `127.0.0.1:8090`）。裝置控制類 API 的 CORS 全開；`/userdata` 例外，只接受本機地圖頁面（`file://` 或 `http://localhost:PORT`、`http://127.0.0.1:PORT`），其他網站一律拒絕。
+
+### 地圖頁面與使用者資料
+
+| 方法與路徑 | 說明 |
+|-----------|------|
+| `GET /`、`GET /map` | 回傳 `gps_map.html`（不提供其他檔案） |
+| `GET /userdata` | 讀取 `{ ok, exists, data: { version, updatedAt, favorites, cruiseRoutes, mapSettings } }` |
+| `POST /userdata` | 部分更新，body 可含 `favorites`、`cruiseRoutes`、`mapSettings`（須 `Content-Type: application/json`，上限 5MB）；回傳 `{ ok, updatedAt }` |
+
+存檔採原子寫入並保留上一版於 `user_data.json.prev`；若檔案損壞或沒有權限讀取，Launcher 會拒絕覆寫並回傳 `{ ok: false, error }`。
 
 ### 單一裝置
 
 | 方法與路徑 | 說明 |
 |-----------|------|
 | `GET /devices` | 列出所有偵測到的裝置（狀態物件陣列） |
+| `GET /connection-mode` | 取得模式，回傳 `{ "ok": true, "mode": "usb" }`（模式可為 `usb`／`wifi`／`auto`） |
+| `POST /connection-mode` | 設定模式，body `{ "mode": "wifi" }`；成功回傳相同結構，中止不相容的連線與巡航 |
 | `POST /device/{idx}/set` | 設定座標 — body `{ "lat": .., "lon": .. }` |
 | `POST /device/{idx}/clear` | 清除模擬、恢復真實 GPS |
 | `GET /device/{idx}/status` | 單一裝置詳細狀態 |
@@ -340,6 +394,7 @@ USB 掃描採用**三層備援**：
     "name": "Aroha's iPhone",
     "ios": "17.4",
     "connected": true,
+    "connection_type": "usb",
     "simulating": true,
     "last_lat": 25.03300,
     "last_lon": 121.56540,
@@ -400,6 +455,16 @@ USB 掃描採用**三層備援**：
 
 **Q6：拔插手機後無法重連（舊版行為）？**
 - 目前版本已修正 — 重插後會自動重連，不必重啟 Launcher。
+
+**Q7：最愛或巡航路線不見了？**
+- 新版資料存在 `user_data.json`，不再因為瀏覽器清除資料而消失。
+- 若畫面提示「Launcher 未連線（或版本較舊）」，代表資料暫存在瀏覽器；啟動新版 Launcher 後會自動同步。
+- 誤刪時可用 `user_data.json.prev`（上一版）救回：先停止 Launcher，把 `.prev` 複製成 `user_data.json` 再重新啟動。
+
+**Q8：選 Google 地圖卻一直跳回 OpenStreetMap？**
+- 檢查金鑰是否正確，且 Google Cloud 已啟用 **Maps JavaScript API** 與帳單。
+- 若金鑰設了「網站限制」，請改用 http://localhost:8090/ 開啟頁面（直接開檔案時沒有網址，會被網站限制擋下）。
+- 是否已達你設定的每日配額上限（隔天太平洋時間 0 點重置）。
 
 ---
 
