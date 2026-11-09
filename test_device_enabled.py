@@ -267,11 +267,36 @@ class DeviceEnabledTests(LifecycleHarness):
         await self.m.route_cruise_resume(self.request())
         self.assertEqual(self.m._cruise.target_udids, ['C'])
         await self.enabled(True)
-        self.assertNotIn('A', self.m._cruise.target_udids)
+        # 同步全部巡航中重新啟用：已連線的手機立刻跟上巡航。
+        self.assertIn('A', self.m._cruise.target_udids)
 
-    async def test_d_disabled_or_cleared_device_never_rejoins_cruise_after_reconnect(self):
+    async def test_d_disabled_device_stays_out_until_reenabled_then_joins_sync_all(self):
         self.m._cruise.tick_interval = 3600
-        for intent in ('disable', 'clear'):
+        self.present = {'A', 'B'}
+        await self.device('A', 0)
+        await self.device('B', 1)
+        await self.m._cruise.start('all', [{'lat': 25, 'lon': 121}, {'lat': 26, 'lon': 122}], 5)
+        await self.quiesce()
+        await self.enabled(False)
+        self.assertEqual(self.m._cruise.target_udids, ['B'])
+        await self.quiesce()
+        baseline = len(self.sets)
+        await self.unplug('A')
+        fresh = await self.replug('A')
+        self.assertFalse(fresh.enabled)          # 停用狀態會被記住
+        await self.quiesce()
+        self.assertNotIn('A', self.m._cruise.target_udids)   # 停用中：重連也不加入
+        self.assertEqual(self.sets[baseline:], [])
+        await self.enabled(True, fresh.idx)      # 重新啟用：立刻跟上目前巡航位置
+        await self.until(lambda: fresh.state['simulating'])
+        position = self.m._cruise.position
+        self.assertEqual(self.sets[baseline:], [('A', position['lat'], position['lon'])])
+        self.assertEqual(sorted(self.m._cruise.target_udids), ['A', 'B'])
+        self.assertEqual(self.m._cruise.phase, 'running')
+
+    async def test_d_cleared_device_never_rejoins_cruise_after_reconnect(self):
+        self.m._cruise.tick_interval = 3600
+        for intent in ('clear',):
             with self.subTest(intent=intent):
                 await self.m._cruise.stop()
                 for old in list(self.m._devices.values()):
@@ -283,11 +308,7 @@ class DeviceEnabledTests(LifecycleHarness):
                 await self.device('B', 1)
                 await self.m._cruise.start('all', [{'lat': 25, 'lon': 121}, {'lat': 26, 'lon': 122}], 5)
                 await self.quiesce()
-                if intent == 'disable':
-                    await self.enabled(False)
-                    await self.enabled(True)  # 重新啟用也不自動加回（使用者意圖）
-                else:
-                    await self.m.route_clear(self.request())
+                await self.m.route_clear(self.request())  # 使用者主動清除：這次巡航不再加回
                 self.assertEqual(self.m._cruise.target_udids, ['B'])
                 self.assertNotIn('A', self.m._cruise._members)
                 await self.quiesce()

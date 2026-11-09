@@ -526,6 +526,43 @@ class CruiseRejoinUsbTests(LifecycleHarness):
                 self.assertEqual(self.m._cruise.phase, phase)  # 暫停中仍維持暫停
                 self.assertEqual(self.m._cruise.status()['deviceIdx'], 'all')
 
+    async def test_f_sync_all_cruise_late_device_joins_with_current_position(self):
+        # 同步全部：巡航開始後才連上的手機，也自動加入並送出目前巡航位置（不另加輪詢）。
+        for phase in ('running', 'paused'):
+            with self.subTest(phase=phase):
+                await self.m._cruise.stop()
+                for old in list(self.m._devices.values()):
+                    await self.m.teardown_device(old)
+                self.m._devices.clear()
+                self.m._miss_counts.clear()
+                self.present = {'A', 'C'}
+                await self.device('A', 0)
+                await self.m._cruise.start('all', ROUTE, 5)
+                if phase == 'paused':
+                    await self.m._cruise.pause()
+                await self.quiesce()
+                self.assertEqual(self.m._cruise.target_udids, ['A'])
+                baseline = len(self.sets)
+                late = await self.device('C', 2)
+                await self.until(lambda: late.state['simulating'])
+                position = self.m._cruise.position
+                self.assertIn(('C', position['lat'], position['lon']), self.sets[baseline:])
+                self.assertEqual(sorted(self.m._cruise.target_udids), ['A', 'C'])
+                self.assertEqual(self.m._cruise.phase, phase)
+                self.assertEqual(self.m._cruise.status()['deviceIdx'], 'all')
+
+    async def test_f_single_device_cruise_late_device_does_not_join(self):
+        # 單機巡航：只控制選定的那支，晚連上的其他手機不加入。
+        self.present = {'A', 'B'}
+        await self.device('A', 0)
+        await self.m._cruise.start(0, ROUTE, 5)
+        await self.quiesce()
+        late = await self.device('B', 1)
+        await self.quiesce()
+        self.assertEqual(self.m._cruise.target_udids, ['A'])
+        self.assertFalse(late.state['simulating'])
+        self.assertEqual(self.m._cruise.status()['deviceIdx'], 0)
+
     async def test_e_single_device_cruise_replug_stays_stopped(self):
         # 單機巡航只有一支手機：拔線即「全部斷線」→ 巡航自動停止（保留既有行為），
         # 所以重插不會帶回巡航，deviceIdx 也不必更新。

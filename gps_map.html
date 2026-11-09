@@ -824,7 +824,7 @@ let wpMarkers = [], wpData = [];
 let toastTimer = null;
 let _positionVersion = 0, _manualPending = 0, _manualPosition = false;
 let _manualRevision = 0;
-let _devicePositionReady = false, _devicePollSeq = 0;
+let _devicePositionReady = false, _devicePollSeq = 0, _deviceAppliedSeq = 0;
 let _cruiseRevision = 0, _cruisePollSeq = 0;
 let _connectionMode = 'usb', _connectionModeKnown = false;
 let _connectionModePending = false, _connectionModePollBusy = false, _connectionModeRevision = 0;
@@ -1187,7 +1187,12 @@ async function pollDevices() {
     let devs = await fetchDeviceList();
     if (controlRevision !== _deviceControlRevision) return;
     devs = mergePendingDeviceControls(devs);
-    if (seq !== _devicePollSeq || version !== _positionVersion || _manualPending) return;
+    // 手機清單與燈號一律更新，只丟掉比畫面上更舊的回應（巡航中位置版本每 1.5 秒變一次，
+    // 不能拿它擋清單，否則清單會卡在舊狀態直到重新整理）。
+    if (seq < _deviceAppliedSeq) return;
+    _deviceAppliedSeq = seq;
+    // 只有「移動地圖標記」需要確定這次回應沒被手動移動／巡航搶先。
+    const positionFresh = seq === _devicePollSeq && version === _positionVersion && !_manualPending;
     state.devices = devs;
     renderDeviceList(devs);
 
@@ -1212,13 +1217,13 @@ async function pollDevices() {
 
       // Move each device's marker to its own reported coords (may differ briefly during fan-out).
       controllableDevices().forEach(d => {
-        if (state.cruiseActive || _manualPosition || _devicePositionReady) return;
+        if (!positionFresh || state.cruiseActive || _manualPosition || _devicePositionReady) return;
         if (d.last_lat == null || d.last_lon == null) return;
         const m = getOrCreateMarkers(d.idx);
         m.phone.setLatLng([d.last_lat, d.last_lon]);
         m.pulse.setLatLng([d.last_lat, d.last_lon]);
       });
-      if (devs.some(d => d.last_lat != null && d.last_lon != null)) _devicePositionReady = true;
+      if (positionFresh && devs.some(d => d.last_lat != null && d.last_lon != null)) _devicePositionReady = true;
 
       // Surface the first new error from any device
       const errDev = devs.find(d => d.error);
@@ -1250,7 +1255,7 @@ async function pollDevices() {
     document.getElementById('sv-uptime').textContent     = cur.uptime_sec != null ? fmtTime(cur.uptime_sec) : '—';
 
     // Sync coordinates (after reconnect)
-    if (!_devicePositionReady && !_manualPosition && !state.cruiseActive
+    if (positionFresh && !_devicePositionReady && !_manualPosition && !state.cruiseActive
         && cur.last_lat != null && cur.last_lon != null) {
       const la = parseFloat(cur.last_lat), lo = parseFloat(cur.last_lon);
       if (la !== state.lat || lo !== state.lon) gotoCoord(la, lo, true);

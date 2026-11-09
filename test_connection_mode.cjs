@@ -137,6 +137,29 @@ async function main() {
     assert.equal(t.element('in-coord').value, '25.000000, 121.000000');
   }
   console.log('通過：單機及同步全部，手動座標不被舊查詢或後續輪詢拉回');
+
+  for (const selected of [0, 'all']) {
+    t = setup();
+    t.run(`state.deviceIdx = ${JSON.stringify(selected)}; state.cruiseActive = true; state.playing = true;
+      state.devices = [{idx: 0, udid: 'test-a', name: '測試甲', connected: true, enabled: true}];`);
+    const devA = { idx: 0, udid: 'test-a', name: '測試甲', enabled: true, connected: true, connection_type: 'wifi' };
+    const devB = { idx: 1, udid: 'test-b', name: '測試乙', enabled: true, connected: true, connection_type: 'wifi' };
+    // 巡航中：查詢途中位置版本被巡航狀態更新改掉，手機清單仍要更新。
+    const slow = deferred(); t.queue.push(slow.promise);
+    const task = t.context.pollDevices();
+    t.run('_positionVersion++');
+    slow.resolve(reply([devA, devB])); await task;
+    assert.equal(t.run('state.devices.length'), 2);
+    assert.match(t.element('device-list').innerHTML, /測試乙/);
+    // 回應順序顛倒：較新的先到並顯示，較舊的晚到不可蓋回去。
+    const older = deferred(); t.queue.push(older.promise);
+    const olderTask = t.context.pollDevices();
+    t.queue.push(reply([devA, devB])); await t.context.pollDevices();
+    older.resolve(reply([{ ...devA, connected: false }])); await olderTask;
+    assert.equal(t.run('state.devices.length'), 2);
+    assert.equal(t.run('state.devices[0].connected'), true);
+  }
+  console.log('通過：巡航中手機清單照常更新，晚到的舊回應不會蓋掉新狀態');
   assert.match(html, /const META\s*= 'http:\/\/localhost:8090'/);
   console.log('全部通過；未使用真實網路或手機。');
 }

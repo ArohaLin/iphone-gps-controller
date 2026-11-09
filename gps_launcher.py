@@ -448,6 +448,8 @@ class CruiseController:
         self.target_udids = []   # 目前會收到巡航位置的手機（斷線時暫時移出）
         # 這次巡航的原始名單：斷線重連可自動加回；使用者停用／清除則 forget。
         self._members = set()
+        # 這次巡航中被使用者「清除定位」的手機：同步全部模式下也不自動加入。
+        self._excluded = set()
         self.waypoints = []
         self.speed = 0.0
         self.loop = False
@@ -508,33 +510,43 @@ class CruiseController:
         async with self._op_lock:
             if forget:
                 self._members.discard(udid)
+                self._excluded.add(udid)
             if udid in self.target_udids:
                 self.target_udids.remove(udid)
                 if not self.target_udids:
                     await self._stop_unlocked()
 
     async def rejoin(self, ctx):
-        """GPS 重新連上時呼叫（事件驅動，不輪詢）。
+        """GPS 連上、或使用者重新啟用控制時呼叫（事件驅動，不輪詢）。
 
-        只把『目前』巡航位置送給原本就在這次巡航名單內、且未被使用者停用的手機；
+        單機巡航：只有原本就在這次巡航名單內的手機會加回。
+        同步全部巡航：任何已連線且已啟用控制的手機都會加入（巡航途中才連上的也算），
+        但這次巡航中被使用者「清除定位」的手機除外。
+        只把『目前』巡航位置送給未被使用者停用的手機；
         不重播任何舊指令。暫停中也會送，讓手機停在巡航目前的位置。
         鎖順序：呼叫端（gps_worker）此時不持有任何鎖；_op_lock 內不 await 其他工作，
         因此不會與 _device_lock／_enabled_lock 互相等待。"""
         async with self._op_lock:
+            eligible = (ctx.udid in self._members
+                        or (self.device_idx == 'all' and ctx.udid not in self._excluded))
             if (self.phase not in ('running', 'paused')
-                    or ctx.udid not in self._members
+                    or not eligible
+                    or not ctx.state['connected']
                     or not ctx.enabled or ctx.closing
                     or _devices.get(ctx.udid) is not ctx
                     or ctx.udid in self.target_udids):
                 return False
+            joined_new = ctx.udid not in self._members
+            self._members.add(ctx.udid)
             self.target_udids.append(ctx.udid)
             if self.device_idx != 'all':
                 # 單機巡航：重插後 idx 會變，同步更新讓前端對得上。
                 self.device_idx = ctx.idx
             if self.position:
                 ctx._mailbox.post(_SetCmd(self.position['lat'], self.position['lon']))
-            log.info('[%s] 重新連線，已加回%s的巡航並送出目前位置',
-                     ctx.name, '暫停中' if self.phase == 'paused' else '進行中')
+            log.info('[%s] %s%s的巡航並送出目前位置', ctx.name,
+                     '已加入同步全部' if joined_new else '重新連線，已加回',
+                     '暫停中' if self.phase == 'paused' else '進行中')
             return True
 
     def _restart_loop(self):
@@ -630,6 +642,7 @@ class CruiseController:
     async def _stop_unlocked(self):
         self.phase = 'stopped'
         self._members.clear()
+        self._excluded.clear()
         self._wake.set()
         old_task, self.task = self.task, None
         if old_task and not old_task.done():
@@ -671,6 +684,7 @@ class CruiseController:
             self.device_idx = selector
             self.target_udids = [c.udid for c in targets]
             self._members = set(self.target_udids)
+            self._excluded = set()
             self.waypoints = points
             self.speed = speed
             self.loop = bool(loop)
@@ -1489,43 +1503,53 @@ def _disabled_response():
 
 async def _set_device_enabled(ctx, enabled):
     async with ctx._enabled_lock:
-        try:
-            _preferences.save(ctx.udid, enabled)
-        except Exception as error:
-            return web.json_response({'ok': False, 'error': f'無法保存裝置設定：{error}',
-                                      'enabled': ctx.enabled}, status=500)
         was_enabled = ctx.enabled
-        ctx.enabled = enabled
-        if enabled:
-            if not was_enabled:
-                ctx._mailbox.clear()
-            return web.json_response({'ok': True, 'enabled': True})
-        ctx._control_generation += 1
-        ctx._sync_generation = None
-        ctx._sync_remaining = 0
-        ctx._mailbox.clear()
-        _pending_steps.pop(ctx.udid, None)
-        cleared = False
-        done = None
-        if ctx.state['connected'] and not ctx.closing:
-            done = asyncio.get_running_loop().create_future()
-            ctx._mailbox.post(_ClearCmd(done))
-        # 使用者主動停用：永久移出這次巡航，重新啟用也不自動加回。
-        await _cruise.remove_device(ctx.udid, forget=True)
-        for task in list(ctx._shortcut_tasks):
-            await _cancel_task(task)
-        if done is not None:
-            try:
-                cleared = await asyncio.wait_for(asyncio.shield(done), DISABLE_CLEAR_TIMEOUT)
-            except asyncio.TimeoutError:
-                pass
-        warnings = []
-        if not cleared:
-            warnings.append(_CLEAR_WARNING)
-        if ctx._shortcut_ever_sent:
-            warnings.append('已交給手機的捷徑無法撤回')
-        return web.json_response({'ok': True, 'enabled': False,
-                                  **({'warning': '；'.join(warnings)} if warnings else {})})
+        response = await _set_device_enabled_locked(ctx, enabled)
+    # 鎖外呼叫（rejoin 會拿巡航鎖）：同步全部巡航中重新啟用的手機，立刻跟上目前巡航位置。
+    if enabled and not was_enabled and ctx.enabled and ctx.state['connected'] and not ctx.closing:
+        await _cruise.rejoin(ctx)
+    return response
+
+
+async def _set_device_enabled_locked(ctx, enabled):
+    """呼叫端須持有 ctx._enabled_lock。"""
+    try:
+        _preferences.save(ctx.udid, enabled)
+    except Exception as error:
+        return web.json_response({'ok': False, 'error': f'無法保存裝置設定：{error}',
+                                  'enabled': ctx.enabled}, status=500)
+    was_enabled = ctx.enabled
+    ctx.enabled = enabled
+    if enabled:
+        if not was_enabled:
+            ctx._mailbox.clear()
+        return web.json_response({'ok': True, 'enabled': True})
+    ctx._control_generation += 1
+    ctx._sync_generation = None
+    ctx._sync_remaining = 0
+    ctx._mailbox.clear()
+    _pending_steps.pop(ctx.udid, None)
+    cleared = False
+    done = None
+    if ctx.state['connected'] and not ctx.closing:
+        done = asyncio.get_running_loop().create_future()
+        ctx._mailbox.post(_ClearCmd(done))
+    # 使用者主動停用：移出這次巡航；同步全部模式下重新啟用會再加入，單機巡航則會結束。
+    await _cruise.remove_device(ctx.udid)
+    for task in list(ctx._shortcut_tasks):
+        await _cancel_task(task)
+    if done is not None:
+        try:
+            cleared = await asyncio.wait_for(asyncio.shield(done), DISABLE_CLEAR_TIMEOUT)
+        except asyncio.TimeoutError:
+            pass
+    warnings = []
+    if not cleared:
+        warnings.append(_CLEAR_WARNING)
+    if ctx._shortcut_ever_sent:
+        warnings.append('已交給手機的捷徑無法撤回')
+    return web.json_response({'ok': True, 'enabled': False,
+                              **({'warning': '；'.join(warnings)} if warnings else {})})
 
 
 async def route_device_enabled(request):
