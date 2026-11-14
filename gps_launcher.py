@@ -434,6 +434,42 @@ def _distance_m(a, b):
     return 2 * radius * math.asin(min(1.0, math.sqrt(h)))
 
 
+# 巡航模式：walk＝沿航點等速行走（原本行為）；jump＝跳到每個航點旁繞圈停留。
+CRUISE_MODES = ('walk', 'jump')
+JUMP_DWELL_DEFAULT = 15.0         # 每個航點停留秒數
+JUMP_DWELL_MIN, JUMP_DWELL_MAX = 1.0, 3600.0
+JUMP_RADIUS_DEFAULT = 30.0        # 繞圈半徑（公尺）
+JUMP_RADIUS_MIN, JUMP_RADIUS_MAX = 0.0, 500.0
+JUMP_CIRCLE_SPEED_MAX = 19.0      # 繞圈速度上限（km/h）
+JUMP_CIRCLE_SPEED_DEFAULT = JUMP_CIRCLE_SPEED_MAX
+_EARTH_RADIUS_M = 6371000.0
+
+
+def _bearing_rad(origin, point):
+    """從 origin 望向 point 的初始方位角（弧度，0＝北、順時針為正）。"""
+    lat1, lat2 = math.radians(origin['lat']), math.radians(point['lat'])
+    dlon = math.radians(point['lon'] - origin['lon'])
+    y = math.sin(dlon) * math.cos(lat2)
+    x = (math.cos(lat1) * math.sin(lat2)
+         - math.sin(lat1) * math.cos(lat2) * math.cos(dlon))
+    return math.atan2(y, x) % (2 * math.pi)
+
+
+def _offset_point(center, bearing, distance_m):
+    """從 center 朝 bearing 方向移動 distance_m 公尺（經度依 cos(緯度) 換算）。"""
+    if distance_m <= 0:
+        return dict(center)
+    north = distance_m * math.cos(bearing)
+    east = distance_m * math.sin(bearing)
+    lat = center['lat'] + math.degrees(north / _EARTH_RADIUS_M)
+    cos_lat = max(math.cos(math.radians(center['lat'])), 1e-9)
+    lon = center['lon'] + math.degrees(east / (_EARTH_RADIUS_M * cos_lat))
+    lat = max(-90.0, min(90.0, lat))
+    if not -180.0 <= lon <= 180.0:
+        lon = (lon + 180.0) % 360.0 - 180.0
+    return {'lat': lat, 'lon': lon}
+
+
 class CruiseController:
     """One cruise task shared by every browser and all selected devices."""
 
@@ -458,6 +494,57 @@ class CruiseController:
         self.distance_done = 0.0
         self.total_distance = 0.0
         self._last_time = None
+        # 跳點模式參數（walk 模式也保留，之後切換模式直接沿用）
+        self.mode = 'walk'
+        self.dwell_sec = JUMP_DWELL_DEFAULT
+        self.radius_m = JUMP_RADIUS_DEFAULT
+        self.circle_speed = JUMP_CIRCLE_SPEED_DEFAULT
+        self.stop_index = 0        # 跳點模式目前停留的航點
+        self.dwell_elapsed = 0.0   # 在目前航點已停留的秒數（暫停時不累計）
+        self.angle = 0.0           # 目前在圓周上的方位角（弧度，0＝北、順時針）
+
+    @staticmethod
+    def _number(raw, message):
+        if isinstance(raw, bool):
+            raise ValueError(message)
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            raise ValueError(message) from None
+        if not math.isfinite(value):
+            raise ValueError(message)
+        return value
+
+    @staticmethod
+    def validate_mode(raw):
+        if raw not in CRUISE_MODES:
+            raise ValueError('巡航模式只能是 walk（行走）或 jump（跳點）')
+        return raw
+
+    @classmethod
+    def validate_dwell(cls, raw):
+        message = f'停留時間需介於 {JUMP_DWELL_MIN:g}～{JUMP_DWELL_MAX:g} 秒'
+        value = cls._number(raw, message)
+        if not JUMP_DWELL_MIN <= value <= JUMP_DWELL_MAX:
+            raise ValueError(message)
+        return value
+
+    @classmethod
+    def validate_radius(cls, raw):
+        message = f'繞圈半徑需介於 {JUMP_RADIUS_MIN:g}～{JUMP_RADIUS_MAX:g} 公尺'
+        value = cls._number(raw, message)
+        if not JUMP_RADIUS_MIN <= value <= JUMP_RADIUS_MAX:
+            raise ValueError(message)
+        return value
+
+    @classmethod
+    def validate_circle_speed(cls, raw):
+        value = cls._number(raw, '繞圈速度必須大於 0')
+        if value <= 0:
+            raise ValueError('繞圈速度必須大於 0')
+        if value > JUMP_CIRCLE_SPEED_MAX:
+            raise ValueError(f'繞圈速度最多 {JUMP_CIRCLE_SPEED_MAX:g} km/h')
+        return value
 
     @staticmethod
     def validate_waypoints(raw):
@@ -555,11 +642,95 @@ class CruiseController:
         self.distance_done = 0.0
         self.total_distance = self._route_distance(self.position, 1)
 
+    # ── 跳點模式 ─────────────────────────────────────────────────────
+    def _place_on_circle(self):
+        """依目前停留點、角度與半徑算出圓周上的位置。半徑 0 就停在航點正中央。"""
+        center = self.waypoints[self.stop_index]
+        self.position = _offset_point(center, self.angle, self.radius_m)
+
+    def _land_at(self, index):
+        """瞬間跳到第 index 個航點的圓周上，落點朝向跳來之前的位置；第一站朝北。"""
+        center = self.waypoints[index]
+        prev = self.position
+        if prev is None or _distance_m(prev, center) <= 1e-6:
+            self.angle = 0.0
+        else:
+            self.angle = _bearing_rad(center, prev)
+        self.stop_index = index
+        self.dwell_elapsed = 0.0
+        self._place_on_circle()
+
+    def _jump_complete(self):
+        """跳點巡航結束：停在最後一點，進度 100%。"""
+        self.stop_index = max(0, len(self.waypoints) - 1)
+        self.dwell_elapsed = self.dwell_sec
+        self.phase = 'completed'
+
+    def _circle_by(self, seconds):
+        """沿圓周順時針等速前進 seconds 秒（角速度＝線速度／半徑）。"""
+        if self.radius_m > 0 and seconds > 0:
+            step = self.circle_speed * 1000.0 / 3600.0 * seconds / self.radius_m
+            self.angle = (self.angle + step) % (2 * math.pi)
+        self._place_on_circle()
+
+    def _advance_jump(self, elapsed):
+        """跳點模式的時間推進：停滿 dwellSec 就跳下一點，剩下的秒數接著算。"""
+        while self.phase == 'running':
+            left = self.dwell_sec - self.dwell_elapsed
+            if elapsed < left:
+                self._circle_by(elapsed)
+                self.dwell_elapsed += elapsed
+                return
+            step = max(0.0, left)
+            self._circle_by(step)
+            elapsed -= step
+            self.dwell_elapsed = self.dwell_sec
+            next_index = self.stop_index + 1
+            if next_index >= len(self.waypoints):
+                if not self.loop:
+                    self._jump_complete()
+                    return
+                next_index = 0
+            self._land_at(next_index)
+
+    def _switch_to_jump(self):
+        """行走中切成跳點：立刻跳到原本要走去的下一個航點並開始停留。"""
+        self.mode = 'jump'
+        index = self.target_index
+        if index >= len(self.waypoints):
+            if not self.loop:
+                self._jump_complete()
+                return
+            index = 0
+        self._land_at(index)
+
+    def _switch_to_walk(self):
+        """跳點中切成行走：從目前位置走向目前停留點的下一個航點。"""
+        self.mode = 'walk'
+        next_index = self.stop_index + 1
+        if next_index >= len(self.waypoints):
+            if self.loop:
+                self._restart_loop()  # 與行走模式到終點時相同：回到第 1 點重新走
+            else:
+                self.target_index = len(self.waypoints)
+                self.distance_done = self.total_distance = self._route_distance(
+                    self.waypoints[0], 1)
+                self.phase = 'completed'
+            return
+        full = self._route_distance(self.waypoints[0], 1)
+        rest = self._route_distance(self.waypoints[self.stop_index], self.stop_index + 1)
+        self.target_index = next_index
+        self.distance_done = full - rest
+        self.total_distance = self.distance_done + self._route_distance(self.position, next_index)
+
     def _advance_to(self, now):
         if self.phase != 'running' or self._last_time is None:
             return
         elapsed = max(0.0, now - self._last_time)
         self._last_time = now
+        if self.mode == 'jump':
+            self._advance_jump(elapsed)
+            return
         remaining_move = self.speed * 1000.0 / 3600.0 * elapsed
 
         while remaining_move > 0 and self.phase == 'running':
@@ -623,6 +794,14 @@ class CruiseController:
             progress = min(1.0, self.distance_done / self.total_distance)
         elif self.phase == 'completed':
             progress = 1.0
+        target_index = self.target_index
+        stop_index = dwell_remaining = None
+        if self.mode == 'jump':
+            stop_index = target_index = self.stop_index
+            dwell_remaining = max(0.0, self.dwell_sec - self.dwell_elapsed)
+            if self.waypoints:
+                done = min(1.0, self.dwell_elapsed / self.dwell_sec)
+                progress = min(1.0, (self.stop_index + done) / len(self.waypoints))
         return {
             'ok': True,
             'id': self._run_id,
@@ -636,7 +815,13 @@ class CruiseController:
             'loop': self.loop,
             'position': dict(self.position) if self.position else None,
             'progress': progress,
-            'target_index': self.target_index,
+            'target_index': target_index,
+            'mode': self.mode,
+            'dwellSec': self.dwell_sec,
+            'radiusM': self.radius_m,
+            'circleSpeed': self.circle_speed,
+            'stopIndex': stop_index,
+            'dwellRemaining': dwell_remaining,
         }
 
     async def _stop_unlocked(self):
@@ -657,9 +842,18 @@ class CruiseController:
         async with self._op_lock:
             return await self._stop_unlocked()
 
-    async def start(self, device_idx, waypoints, speed, loop=False):
+    async def start(self, device_idx, waypoints, speed, loop=False, mode=None,
+                    dwell_sec=None, radius_m=None, circle_speed=None):
         points = self.validate_waypoints(waypoints)
         speed = self.validate_speed(speed)
+        # 沒帶的跳點參數用預設值；即使是 walk 模式也先驗證並保存，之後切換直接沿用。
+        mode = 'walk' if mode is None else self.validate_mode(mode)
+        dwell_sec = (JUMP_DWELL_DEFAULT if dwell_sec is None
+                     else self.validate_dwell(dwell_sec))
+        radius_m = (JUMP_RADIUS_DEFAULT if radius_m is None
+                    else self.validate_radius(radius_m))
+        circle_speed = (JUMP_CIRCLE_SPEED_DEFAULT if circle_speed is None
+                        else self.validate_circle_speed(circle_speed))
 
         async with self._op_lock:
             if device_idx == 'all':
@@ -692,6 +886,16 @@ class CruiseController:
             self.target_index = 1
             self.distance_done = 0.0
             self.total_distance = self._route_distance(self.position, 1)
+            self.mode = mode
+            self.dwell_sec = dwell_sec
+            self.radius_m = radius_m
+            self.circle_speed = circle_speed
+            self.stop_index = 0
+            self.dwell_elapsed = 0.0
+            self.angle = 0.0
+            if mode == 'jump':
+                self.position = None   # 第一站沒有「前一個位置」→ 落在正北
+                self._land_at(0)
             self._last_time = asyncio.get_running_loop().time()
             self._post_position()
             self.task = asyncio.create_task(self._run(), name='gps-cruise')
@@ -725,27 +929,63 @@ class CruiseController:
         async with self._op_lock:
             if self.phase not in ('running', 'paused'):
                 raise ValueError('目前沒有進行中的巡航')
+            # 跳點相關欄位先全部驗證：任一不合法就整筆拒絕，不動目前巡航。
+            new_mode = self.validate_mode(data['mode']) if 'mode' in data else None
+            dwell_sec = self.validate_dwell(data['dwellSec']) if 'dwellSec' in data else None
+            radius_m = self.validate_radius(data['radiusM']) if 'radiusM' in data else None
+            circle_speed = (self.validate_circle_speed(data['circleSpeed'])
+                            if 'circleSpeed' in data else None)
 
             now = asyncio.get_running_loop().time()
             was_running = self.phase == 'running'
             if was_running:
                 self._advance_to(now)
                 self._post_position()
+            before = dict(self.position) if self.position else None
 
             if 'speed' in data:
                 self.speed = self.validate_speed(data['speed'])
             if 'loop' in data:
                 self.loop = bool(data['loop'])
+            if dwell_sec is not None:
+                self.dwell_sec = dwell_sec
+            if radius_m is not None:
+                self.radius_m = radius_m
+            if circle_speed is not None:
+                self.circle_speed = circle_speed   # 已先推進到現在，新速度從此刻起算
             if 'waypoints' in data:
                 points = self.validate_waypoints(data['waypoints'])
-                next_index = self.target_index
-                self.waypoints = points
-                if next_index >= len(points):
-                    self.phase = 'completed'
+                if self.mode == 'jump':
+                    # 跳點：目前停留點仍存在就留在原點，否則依循環設定回第 1 點或結束。
+                    self.waypoints = points
+                    if self.stop_index >= len(points):
+                        if self.loop:
+                            self._land_at(0)
+                        else:
+                            self._jump_complete()
                 else:
-                    self.target_index = next_index
-                    self.total_distance = (self.distance_done
-                                           + self._route_distance(self.position, next_index))
+                    next_index = self.target_index
+                    self.waypoints = points
+                    if next_index >= len(points):
+                        self.phase = 'completed'
+                    else:
+                        self.target_index = next_index
+                        self.total_distance = (self.distance_done
+                                               + self._route_distance(self.position, next_index))
+            if (new_mode is not None and new_mode != self.mode
+                    and self.phase in ('running', 'paused')):
+                if new_mode == 'jump':
+                    self._switch_to_jump()
+                else:
+                    self._switch_to_walk()
+            if self.mode == 'jump' and self.phase in ('running', 'paused'):
+                # 半徑或航點座標變更立即生效：保持目前角度，放回新的圓周上。
+                self._place_on_circle()
+                if self.phase == 'running':
+                    # 停留時間改短到「已停留時間」以下 → 立刻換下一點。
+                    self._advance_jump(0.0)
+            if self.position != before:
+                self._post_position()
 
             if was_running and self.phase == 'running':
                 self._last_time = now
@@ -1643,6 +1883,8 @@ async def route_cruise_start(request):
         result = await _cruise.start(
             data.get('deviceIdx'), data.get('waypoints'), data.get('speed'),
             data.get('loop', False),
+            mode=data.get('mode'), dwell_sec=data.get('dwellSec'),
+            radius_m=data.get('radiusM'), circle_speed=data.get('circleSpeed'),
         )
         return web.json_response(result)
     except (ValueError, LookupError) as e:
@@ -1667,7 +1909,8 @@ async def route_cruise_update(request):
     try:
         data = await request.json()
         if not isinstance(data, dict) or not any(
-                key in data for key in ('speed', 'waypoints', 'loop')):
+                key in data for key in ('speed', 'waypoints', 'loop', 'mode',
+                                        'dwellSec', 'radiusM', 'circleSpeed')):
             raise ValueError('沒有可更新的巡航設定')
         return web.json_response(await _cruise.update(data))
     except (ValueError, LookupError) as e:

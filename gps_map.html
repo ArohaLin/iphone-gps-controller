@@ -150,6 +150,18 @@ input:focus{border-color:var(--primary)}
 .wp-del:hover{background:rgba(209,99,116,.15);color:var(--err)}
 .wp-empty{padding:20px;text-align:center;color:var(--faint);font-size:12px}
 
+/* Cruise mode switch（🚶 等速移動／⚡ 跳躍） */
+.seg{display:flex;gap:2px;padding:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)}
+.seg-btn{flex:1;padding:7px 8px;border:none;border-radius:6px;background:transparent;color:var(--muted);font-size:12.5px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s}
+.seg-btn:hover{color:var(--text);background:var(--surf2)}
+.seg-btn[aria-pressed="true"]{background:var(--primary);color:white}
+.seg-btn:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.jump-fields{display:flex;flex-direction:column;gap:6px}
+.jump-row{display:flex;align-items:center;gap:8px}
+.jump-row label{font-size:12px;color:var(--text);min-width:64px}
+.jump-row input{width:90px;text-align:center}
+.jump-note{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5}
+
 /* Route info */
 .route-info{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .info-card{background:var(--surf2);border-radius:6px;padding:10px;border:1px solid var(--border)}
@@ -627,6 +639,13 @@ input:focus{border-color:var(--primary)}
     </div>
 
     <div>
+      <div class="sec-hdr" style="margin-bottom:8px" id="cruise-mode-label">巡航方式</div>
+      <div class="seg" role="group" aria-labelledby="cruise-mode-label">
+        <button type="button" class="seg-btn" id="cruise-mode-walk" aria-pressed="true" onclick="setCruiseMode('walk')">🚶 等速移動</button>
+        <button type="button" class="seg-btn" id="cruise-mode-jump" aria-pressed="false" onclick="setCruiseMode('jump')">⚡ 跳躍</button>
+      </div>
+    </div>
+    <div id="cruise-walk-fields">
       <div class="sec-hdr" style="margin-bottom:8px">移動速度</div>
       <div class="field-row" style="align-items:center;gap:8px">
         <input type="number" id="speed-input" value="5" min="0.1" max="999" step="0.5"
@@ -636,6 +655,30 @@ input:focus{border-color:var(--primary)}
         <span class="dist-unit">km/h</span>
         <span style="font-size:11px;color:var(--muted);margin-left:auto">每秒更新</span>
       </div>
+    </div>
+    <div id="cruise-jump-fields" class="hidden">
+      <div class="sec-hdr" style="margin-bottom:8px">跳躍設定</div>
+      <div class="jump-fields">
+        <div class="jump-row">
+          <label for="dwell-input">停留</label>
+          <input type="number" id="dwell-input" value="15" min="1" max="3600" step="1"
+            oninput="_jumpInputLater(this, updateDwell)" onchange="_jumpInputNow(this, updateDwell)">
+          <span class="dist-unit">秒</span>
+        </div>
+        <div class="jump-row">
+          <label for="radius-input">繞圈半徑</label>
+          <input type="number" id="radius-input" value="30" min="0" max="500" step="5"
+            oninput="_jumpInputLater(this, updateRadius)" onchange="_jumpInputNow(this, updateRadius)">
+          <span class="dist-unit">公尺</span>
+        </div>
+        <div class="jump-row">
+          <label for="circle-speed-input">繞圈速度</label>
+          <input type="number" id="circle-speed-input" value="19" min="0.1" max="19" step="0.5"
+            oninput="_jumpInputLater(this, updateCircleSpeed)" onchange="_jumpInputNow(this, updateCircleSpeed)">
+          <span class="dist-unit">km/h</span>
+        </div>
+      </div>
+      <div class="jump-note">瞬移到每個航點，在附近繞圈停留後再跳到下一點；繞圈速度最高 19 km/h</div>
     </div>
     <div>
       <div class="sec-hdr" style="margin-bottom:8px">路線資訊</div>
@@ -817,6 +860,8 @@ const state = {
   deviceIdx: null,   // Currently selected device.idx
   devices: [],
   speed: 5, loop: false,
+  // 巡航方式：walk＝等速移動（沿航點走）、jump＝跳躍（瞬移到航點、繞圈停留後跳下一點）
+  cruiseMode: 'walk', dwellSec: 15, radiusM: 30, circleSpeed: 19,
   playing: false, cruiseActive: false,
 };
 let map, phoneMarkers = {}, pulseMarkers = {}, routeLine;
@@ -1519,6 +1564,7 @@ function clearWaypoints() {
   wpMarkers.forEach(m => map.removeLayer(m));
   wpMarkers = []; wpData = [];
   if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  updateJumpCircles();
   updateWpList(); updateRouteInfo();
 }
 function updateWpList() {
@@ -1541,6 +1587,18 @@ function updateRoute() {
   if (wpData.length > 1)
     routeLine = L.polyline(wpData.map(w => [w.lat, w.lon]),
       { color:'#e8af34', weight:2.5, opacity:.7, dashArray:'6,4' }).addTo(map);
+  updateJumpCircles();
+}
+// 跳躍模式：每個航點畫一圈繞圈範圍（虛線、路線色）；等速移動模式全部移除
+let _jumpCircles = [];
+function updateJumpCircles() {
+  _jumpCircles.forEach(c => map.removeLayer(c));
+  _jumpCircles = [];
+  if (state.cruiseMode !== 'jump' || !(state.radiusM > 0)) return;
+  _jumpCircles = wpData.map(w => L.circle([w.lat, w.lon], {
+    radius: state.radiusM, color: '#e8af34', weight: 1.5, opacity: .85, dashArray: '5,5',
+    fillColor: '#e8af34', fillOpacity: .06, interactive: false,   // 不攔截點擊，仍可在圈內加航點
+  }).addTo(map));
 }
 
 // ── Speed / Loop ───────────────────────────────────────────────────
@@ -1558,8 +1616,135 @@ function toggleLoop() {
   el.style.color = state.loop ? 'var(--success)' : 'var(--muted)';
   updateCruise({ loop: state.loop });
 }
+// ── Cruise mode（🚶 等速移動／⚡ 跳躍）─────────────────────────────
+const CRUISE_DEFAULTS = Object.freeze({ mode: 'walk', dwellSec: 15, radiusM: 30, circleSpeed: 19 });
+const CRUISE_PARAM_KEYS = ['mode', 'dwellSec', 'radiusM', 'circleSpeed'];
+// 跳躍參數的上下限（與 Launcher 一致）；超過上限 → 設為上限並提示，低於下限／空白 → 忽略
+const JUMP_PARAMS = {
+  dwellSec:    { input: 'dwell-input',        min: v => v >= 1, max: 3600, maxMsg: '停留時間最多 3600 秒' },
+  radiusM:     { input: 'radius-input',       min: v => v >= 0, max: 500,  maxMsg: '繞圈半徑最大 500 公尺' },
+  circleSpeed: { input: 'circle-speed-input', min: v => v > 0,  max: 19,   maxMsg: '繞圈速度最高 19 km/h' },
+};
+const JUMP_OLD_LAUNCHER_MSG = '跳躍模式需要重新啟動新版 Launcher';
+let _cruiseJumpSupported = null;   // null＝還不知道；false＝舊版 Launcher（巡航狀態沒有 mode 欄位）
+
+function _cruiseParams() {
+  return { mode: state.cruiseMode, dwellSec: state.dwellSec, radiusM: state.radiusM, circleSpeed: state.circleSpeed };
+}
+// 檢查單一跳躍參數：回傳 { value, clamped }；無效或空白回傳 null（比照 updateSpeed 直接忽略）
+function _checkJumpParam(key, raw) {
+  const v = parseFloat(raw), rule = JUMP_PARAMS[key];
+  if (!rule || !Number.isFinite(v) || !rule.min(v)) return null;
+  return v > rule.max ? { value: rule.max, clamped: true } : { value: v, clamped: false };
+}
+// 從路線／記憶設定取出完整參數；缺欄位或不合法 → 等速移動＋預設跳躍參數（相容舊資料）
+function _normCruiseParams(src) {
+  const s = _isPlainObject(src) ? src : {};
+  const out = { mode: s.mode === 'jump' ? 'jump' : 'walk' };
+  Object.keys(JUMP_PARAMS).forEach(k => { const r = _checkJumpParam(k, s[k]); out[k] = r ? r.value : CRUISE_DEFAULTS[k]; });
+  return out;
+}
+function _jumpSummary(p) { return `⚡ 跳躍 · 停 ${p.dwellSec} 秒 · 半徑 ${p.radiusM} m`; }
+
+function renderCruiseModeUI() {
+  const jump = state.cruiseMode === 'jump';
+  document.getElementById('cruise-mode-walk').setAttribute('aria-pressed', String(!jump));
+  document.getElementById('cruise-mode-jump').setAttribute('aria-pressed', String(jump));
+  document.getElementById('cruise-walk-fields').classList.toggle('hidden', jump);
+  document.getElementById('cruise-jump-fields').classList.toggle('hidden', !jump);
+}
+// 把巡航方式／跳躍參數套到 state 與畫面（不送 Launcher、不存檔）。
+// syncInputs：連輸入框數字一起改（Launcher 同步、讀取路線、記憶設定）；使用者正在打字時不用。
+// 回傳是否有任何值改變。
+function _applyCruiseParams(p, syncInputs = true) {
+  const prev = _cruiseParams(), next = { ...prev, ...p };
+  const changed = CRUISE_PARAM_KEYS.filter(k => next[k] !== prev[k]);
+  if (!changed.length) return false;
+  state.cruiseMode = next.mode; state.dwellSec = next.dwellSec;
+  state.radiusM = next.radiusM; state.circleSpeed = next.circleSpeed;
+  if (syncInputs) changed.forEach(k => { if (JUMP_PARAMS[k]) document.getElementById(JUMP_PARAMS[k].input).value = next[k]; });
+  if (changed.includes('mode')) renderCruiseModeUI();
+  updateRouteInfo();
+  if (changed.includes('mode') || changed.includes('radiusM')) updateJumpCircles();
+  return true;
+}
+// 記住目前的巡航方式與跳躍參數（mapSettings.cruise；只改這個鍵，不動 provider 等其他設定）。
+// 回傳是否有變動；save=false 時只改記憶體，由呼叫端稍後一起存檔。
+function _rememberCruiseSettings(save = true) {
+  const next = _cruiseParams(), saved = _normCruiseParams(_mapSettings.cruise);
+  if (CRUISE_PARAM_KEYS.every(k => saved[k] === next[k])) return false;
+  _mapSettings.cruise = next;
+  if (save) saveUserData('mapSettings');
+  return true;
+}
+function _applySavedCruiseSettings() {
+  if (state.cruiseActive || !_isPlainObject(_mapSettings.cruise)) return;   // 巡航中以 Launcher 為準
+  _applyCruiseParams(_normCruiseParams(_mapSettings.cruise));
+}
+function setCruiseMode(mode) {
+  if (mode !== 'walk' && mode !== 'jump') return;
+  if (mode === 'jump' && state.cruiseActive && _cruiseJumpSupported === false) {
+    showToast(JUMP_OLD_LAUNCHER_MSG, 'err');   // 舊版 Launcher 只會等速移動，不假裝切成跳躍
+    return;
+  }
+  if (!_applyCruiseParams({ mode })) return;
+  _rememberCruiseSettings();
+  return updateCruise(_cruiseParams());
+}
+function _updateJumpParam(key, raw) {
+  const r = _checkJumpParam(key, raw);
+  if (!r) return;
+  if (r.clamped) {
+    document.getElementById(JUMP_PARAMS[key].input).value = r.value;
+    showToast(JUMP_PARAMS[key].maxMsg, 'err');
+  }
+  if (!_applyCruiseParams({ [key]: r.value }, false)) return;
+  _rememberCruiseSettings();
+  return updateCruise({ [key]: r.value });
+}
+// 打字時先等停手 0.8 秒再送出，避免把「30」中途的「3」當成停留 3 秒而提早跳點；
+// 按 Enter、離開欄位、點上下箭頭（change 事件）則立刻送出。
+const _jumpInputTimers = {};
+function _jumpInputLater(el, fn) {
+  clearTimeout(_jumpInputTimers[el.id]);
+  _jumpInputTimers[el.id] = setTimeout(() => { delete _jumpInputTimers[el.id]; fn(el.value); }, 800);
+}
+function _jumpInputNow(el, fn) {
+  clearTimeout(_jumpInputTimers[el.id]);
+  delete _jumpInputTimers[el.id];
+  return fn(el.value);
+}
+function updateDwell(v)       { return _updateJumpParam('dwellSec', v); }
+function updateRadius(v)      { return _updateJumpParam('radiusM', v); }
+function updateCircleSpeed(v) { return _updateJumpParam('circleSpeed', v); }
+// 巡航中 Launcher 的方式／參數和畫面不同（重新整理、或另一個瀏覽器改過）→ 以 Launcher 為準。
+// 使用者正在輸入的欄位先跳過，避免打字被蓋掉。
+function _syncCruiseParamsFromServer(data) {
+  const p = {};
+  if (data.mode === 'walk' || data.mode === 'jump') p.mode = data.mode;
+  Object.keys(JUMP_PARAMS).forEach(k => {
+    const r = data[k] == null ? null : _checkJumpParam(k, data[k]);
+    const input = document.getElementById(JUMP_PARAMS[k].input);
+    if (r && !(input && document.activeElement === input)) p[k] = r.value;
+  });
+  _applyCruiseParams(p);
+}
+function _jumpStatusText(data) {
+  const n = Array.isArray(data.waypoints) && data.waypoints.length ? data.waypoints.length : wpData.length;
+  if (!Number.isInteger(data.stopIndex) || data.stopIndex < 0) return '⚡ 跳躍中';
+  const left = Number.isFinite(data.dwellRemaining)
+    ? ` · 還停留 ${Math.ceil(Math.max(0, data.dwellRemaining))} 秒` : '';
+  return `第 ${Math.min(data.stopIndex + 1, n)}/${n} 點${left}`;
+}
+
 function updateRouteInfo() {
   if (wpData.length < 2) { document.getElementById('ri-dist').textContent = '—'; document.getElementById('ri-eta').textContent = '—'; return; }
+  if (state.cruiseMode === 'jump') {
+    // 跳躍是瞬移，沒有行走距離；預計時間＝航點數 × 停留秒數（開循環時為每圈）
+    document.getElementById('ri-dist').textContent = '—';
+    document.getElementById('ri-eta').textContent  = fmtTime(wpData.length * state.dwellSec);
+    return;
+  }
   let dist = 0;
   for (let i = 1; i < wpData.length; i++) dist += haversine(wpData[i-1].lat, wpData[i-1].lon, wpData[i].lat, wpData[i].lon);
   const secs = dist / (state.speed * 1000 / 3600);
@@ -1600,6 +1785,8 @@ async function playCruise() {
 
   if (wpData.length < 2) { showToast('請至少加入 2 個航點', 'err'); return; }
   if (state.deviceIdx === null) { showToast('請先選擇裝置', 'err'); return; }
+  const params = _cruiseParams();
+  if (params.mode === 'jump' && _cruiseJumpSupported === false) { showToast(JUMP_OLD_LAUNCHER_MSG, 'err'); return; }
 
   const revision = ++_cruiseRevision, manualRevision = _manualRevision;
   try {
@@ -1611,11 +1798,19 @@ async function playCruise() {
         waypoints: wpData,
         speed: state.speed,
         loop: state.loop,
+        ...params,
       }),
     });
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || '巡航啟動失敗');
     if (manualRevision === _manualRevision) _manualPosition = false;
+    if (params.mode === 'jump' && typeof data.mode !== 'string') {
+      // 舊版 Launcher 看不懂跳躍，會改成等速移動 → 立刻停掉，不假裝跳躍正在執行
+      _cruiseJumpSupported = false;
+      showToast(JUMP_OLD_LAUNCHER_MSG, 'err');
+      await cruiseCommand('stop');
+      return;
+    }
     if (revision !== _cruiseRevision) return;
     _cruiseRevision++;
     _cruiseKnownId = data.id;
@@ -1685,6 +1880,8 @@ async function pollCruiseStatus() {
 
 function applyCruiseStatus(data) {
   const previous = _lastCruiseState;
+  const hasMode = typeof data.mode === 'string';   // 舊版 Launcher 沒有 mode 欄位
+  _cruiseJumpSupported = hasMode;
   _lastCruiseState = data.state;
   state.cruiseActive = !!data.active;
   state.playing = data.state === 'running';
@@ -1705,6 +1902,14 @@ function applyCruiseStatus(data) {
     const loopEl = document.getElementById('ri-loop');
     loopEl.textContent = state.loop ? '開啟' : '關閉';
     loopEl.style.color = state.loop ? 'var(--success)' : 'var(--muted)';
+  }
+  if (data.active) {
+    if (hasMode) _syncCruiseParamsFromServer(data);
+    else if (state.cruiseMode === 'jump') {
+      // 舊版 Launcher 正在等速移動：畫面改回等速移動，不顯示假的跳躍進度
+      _applyCruiseParams({ mode: 'walk' });
+      showToast(JUMP_OLD_LAUNCHER_MSG, 'err');
+    }
   }
 
   if (data.active && _cruiseSelectedId !== data.id
@@ -1730,7 +1935,9 @@ function applyCruiseStatus(data) {
     document.getElementById('progress-text').textContent = `進度 ${pct.toFixed(0)}%`;
     document.getElementById('play-status-text').textContent = _cruisePaused
       ? '⏸'
-      : `前往航點 ${Math.min((data.target_index || 1) + 1, data.waypoints.length)}`;
+      : hasMode && data.mode === 'jump'
+        ? _jumpStatusText(data)
+        : `前往航點 ${Math.min((data.target_index || 1) + 1, data.waypoints.length)}`;
     document.getElementById('btn-play').textContent = _cruisePaused ? '▶ 繼續' : '▶ 播放';
     document.getElementById('cruise-hint-text').textContent = _cruisePaused
       ? '⏸ 已暫停 — 按「繼續」從中斷處恢復'
@@ -2059,8 +2266,14 @@ function _cruiseSnapshot() {
     waypoints: wpData.map(w => ({ lat: w.lat, lon: w.lon })),
     speed: state.speed,
     loop:  state.loop,
+    ..._cruiseParams(),   // mode, dwellSec, radiusM, circleSpeed
     savedAt: new Date().toISOString(),
   };
+}
+// 路線說明文字裡的「速度／跳躍」那一段（舊路線沒有 mode → 等速移動）
+function _cruiseRouteModeText(r) {
+  const p = _normCruiseParams(r);
+  return p.mode === 'jump' ? _jumpSummary(p) : `${escapeDeviceText(r.speed)} km/h`;
 }
 function _newCruiseId() {
   let id = Date.now();
@@ -2094,8 +2307,9 @@ function openSaveCruiseModal() {
   if (wpData.length < 2) { showToast('請至少加入 2 個航點才能儲存', 'err'); return; }
   document.getElementById('csm-name').value = '';
   hideCruiseDup();
-  document.getElementById('csm-info').textContent =
-    `${wpData.length} 個航點 · 速度 ${state.speed} km/h${state.loop ? ' · 循環' : ''}`;
+  document.getElementById('csm-info').textContent = state.cruiseMode === 'jump'
+    ? `${wpData.length} 個航點 · ${_jumpSummary(_cruiseParams())}${state.loop ? ' · 循環' : ''}`
+    : `${wpData.length} 個航點 · 速度 ${state.speed} km/h${state.loop ? ' · 循環' : ''}`;
   document.getElementById('cruise-save-modal').classList.remove('hidden');
   requestAnimationFrame(() => document.getElementById('csm-name').focus());
 }
@@ -2154,7 +2368,7 @@ function renderCruiseRouteList() {
     return `<div class="cr-item">
       <div class="cr-info">
         <div class="cr-name" title="${name}">${name}</div>
-        <div class="cr-meta">${(r.waypoints || []).length} 個航點 · ${escapeDeviceText(r.speed)} km/h${loopTag}${dateStr}</div>
+        <div class="cr-meta">${(r.waypoints || []).length} 個航點 · ${_cruiseRouteModeText(r)}${loopTag}${dateStr}</div>
       </div>
       <div class="cr-btns">
         <button class="btn btn-primary" onclick="applyCruiseRoute(${idArg})">讀取</button>
@@ -2180,6 +2394,9 @@ async function applyCruiseRoute(id) {
   updateRouteInfo();
   // Restore loop
   if (state.loop !== !!r.loop) toggleLoop();
+  // Restore 巡航方式／跳躍參數（舊路線沒有這些欄位 → 等速移動＋預設跳躍參數）；下方存 mapSettings 時一併記住
+  _applyCruiseParams(_normCruiseParams(r));
+  _rememberCruiseSettings(false);
   // Fit map
   if ((r.waypoints || []).length >= 2) {
     map.fitBounds(L.latLngBounds(r.waypoints.map(w => [w.lat, w.lon])), { padding: [40, 40] });
@@ -2209,7 +2426,8 @@ function overwriteCruiseRoute(id) {
   const r = _findCruiseRoute(id);
   if (!r) return;
   if (wpData.length < 2) { showToast('地圖上至少要有 2 個航點才能覆蓋', 'err'); return; }
-  if (!confirm(`用目前的 ${wpData.length} 個航點（速度 ${state.speed} km/h${state.loop ? '、循環' : ''}）覆蓋「${r.name}」？原本的航點會被取代。`)) return;
+  const modeText = state.cruiseMode === 'jump' ? _jumpSummary(_cruiseParams()) : `速度 ${state.speed} km/h`;
+  if (!confirm(`用目前的 ${wpData.length} 個航點（${modeText}${state.loop ? '、循環' : ''}）覆蓋「${r.name}」？原本的航點會被取代。`)) return;
   Object.assign(r, _cruiseSnapshot());
   _saveCruiseRoutes();
   renderCruiseRouteList();
@@ -2670,6 +2888,7 @@ function _udRefreshUI() {
   renderCruiseFavSelect();
   renderCruiseRouteList();
   _applySavedBaseMap();
+  _applySavedCruiseSettings();
 }
 
 // 失敗時丟出帶 kind 的錯誤：network＝連不上／逾時、old＝404 舊版 Launcher、

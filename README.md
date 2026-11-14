@@ -23,6 +23,7 @@ This release is a major upgrade over the first version:
 - **Auto-rejoin for disconnected phones** — if one phone drops out during a multi-device cruise, it automatically rejoins the cruise when it reconnects and jumps straight to the current cruise position, with no need to stop and restart; in a "🔗 Sync All Devices" cruise, phones that connect after the cruise has started join automatically too (no extra background polling).
 - **Quick cruise route switching** — the cruise panel has a new "⭐ My cruise routes" dropdown; saved routes can be renamed, overwritten with the current waypoints, or deleted.
 - **Optional Google Maps** — switch the base map between OpenStreetMap / Google Maps / Google Satellite (requires your own Google Maps API key). Google is only contacted when you pick a Google base map.
+- **⚡ Jump cruise** — a new "Jump" cruise style: teleports to each waypoint, circles around it for a while (defaults: 15 s, 30 m radius, circle speed up to 19 km/h), then jumps to the next one; settings can be changed at any time and take effect immediately, and the original constant-speed cruise is unaffected.
 
 ---
 
@@ -279,6 +280,15 @@ Shortcuts already handed off to the phone may not be revocable, and disabling co
 
 **Speed & Loop** — speed in km/h; loop restarts from the first waypoint after the end.
 
+**Cruise style: 🚶 Constant speed / ⚡ Jump** — switch between two styles at the top of the cruise panel:
+- **🚶 Constant speed** (default): moves along the waypoints at the set speed, exactly as before.
+- **⚡ Jump**: teleports to each waypoint, circles around it for a while, then teleports to the next one. Three settings: **Stay** (seconds, default 15, 1–3600), **Circle radius** (meters, default 30, 0–500; 0 = stay still on the waypoint), and **Circle speed** (km/h, default 19, **max 19** — larger values are changed to 19 automatically).
+  - On arrival the phone lands directly on the circle (on the side facing its previous position) and circles clockwise at constant speed; pausing freezes both the countdown and the circling.
+  - With loop on, it jumps back to the first waypoint after the last one; with loop off, the cruise ends after the last waypoint's stay.
+  - The map draws a dashed circle around every waypoint; in Route Info the distance shows "—" and the ETA = number of waypoints × stay seconds; progress shows "Point x/n · y s left".
+- **Change anything at any time, effective immediately**: during a cruise you can change the stay time (if it becomes shorter than the time already spent, it jumps to the next point right away), the radius, the circle speed, or switch styles (switching to Jump jumps to the next point and starts staying there; switching back to Constant speed walks from the current position to the next point; if it is on the last waypoint with loop on, it restarts from the first waypoint) — no need to stop and restart. While typing in a field, the change is sent about 0.8 s after you stop typing (or right away when you press Enter or leave the field), so a half-typed number never takes effect early. The last style and settings you used are remembered in `user_data.json` and kept after reopening the page.
+- Jump mode needs the new launcher; an older launcher shows a prompt to restart it instead of silently falling back to constant speed.
+
 **Route Info** — waypoints, distance (auto m/km), and ETA.
 
 **Playing a Cruise**
@@ -291,7 +301,7 @@ Shortcuts already handed off to the phone may not be revocable, and disabling co
 
 **Auto-rejoin for disconnected phones** — during a multi-device cruise, if one phone disconnects (cable pulled, Wi-Fi dropped, a transient error), it automatically rejoins this cruise once it reconnects and immediately receives the *current* cruise position (if the cruise is paused, it jumps to the paused position); old commands are not replayed. In a "🔗 Sync All Devices" cruise, phones that connect after the cruise has started (with control enabled) join automatically as well; in a single-device cruise, other phones that connect are not pulled in. A phone with **control disabled** does not follow, and turning the toggle back on during a Sync All Devices cruise makes it follow immediately; a phone you **cleared** is not pulled back in for the rest of that cruise (starting a new cruise resets this). If all phones disconnect at once (or the only phone in a single-device cruise disconnects), the cruise stops automatically and you need to press ▶ Play again after reconnecting.
 
-**Save / Load Routes** — **💾 Save Route** saves the current waypoints + speed + loop under a name (stored in `user_data.json`); if the name already exists, you're asked whether to overwrite that route or save it as a new one. **📂 Load Route** lists saved routes, each with **Load**, **✏️ Rename**, **⬆️ Overwrite with current waypoints**, and **🗑 Delete**.
+**Save / Load Routes** — **💾 Save Route** saves the current waypoints + speed + loop + cruise style (including Jump's stay / radius / circle speed) under a name; older saved routes always load as Constant speed (stored in `user_data.json`); if the name already exists, you're asked whether to overwrite that route or save it as a new one. **📂 Load Route** lists saved routes, each with **Load**, **✏️ Rename**, **⬆️ Overwrite with current waypoints**, and **🗑 Delete**.
 
 **⭐ My cruise routes (quick switch)** — a dropdown in the cruise panel lists all saved routes; pick one to apply it instantly, and the last applied route is remembered. Switching while a cruise is running asks first; after you confirm, the current cruise stops and the new route is applied.
 
